@@ -13,14 +13,9 @@ public class CardGameManager : NetworkBehaviour
     [SerializeField] private List<TMP_Text> seatNameTexts = new List<TMP_Text>();
 
     // 参加者全員の名前を格納
-    private NetworkList<FixedString64Bytes> connectedPlayerNames;
+    private NetworkList<FixedString64Bytes> connectedPlayerNames = new NetworkList<FixedString64Bytes>();
 
-    //初期化
-    private void Awake()
 
-    { 
-        connectedPlayerNames = new NetworkList<FixedString64Bytes>();
-    }
 
     public override void OnNetworkSpawn()
 
@@ -132,57 +127,20 @@ public class CardGameManager : NetworkBehaviour
 
         }
 
-        // 2. 自分が何番目のプレイヤーか（インデックス）を特定する
-
-        // 自分がHostなら0番目、Clientなら自分が送った名前の位置になります
-
-        int myIndex = 0;
-
-        string myName = NetworkGameManager.Instance != null ? NetworkGameManager.Instance.SavedPlayerName : "";
-
         for (int i = 0; i < connectedPlayerNames.Count; i++)
-
         {
-
-            if (connectedPlayerNames[i].ToString() == myName)
-
+            if (i < seatNameTexts.Count && seatNameTexts[i] != null)
             {
-
-                myIndex = i;
-
-                break;
-
+                seatNameTexts[i].text = connectedPlayerNames[i].ToString();
             }
-
         }
-
-        // 3. 人数分の名前を、自分の画面から見た適切な「席」に配置する
-
-        for (int i = 0; i < connectedPlayerNames.Count; i++)
-
-        {
-
-            // 自分が常に「0番目の席（手前）」に映るように、インデックスをずらす（相対位置の計算）
-
-            int relativeSeatIndex = (i - myIndex + connectedPlayerNames.Count) % connectedPlayerNames.Count;
-
-            // 用意されたUIの数を超えないように制御して名前を描画
-
-            if (relativeSeatIndex < seatNameTexts.Count && seatNameTexts[relativeSeatIndex] != null)
-
-            {
-
-                seatNameTexts[relativeSeatIndex].text = connectedPlayerNames[i].ToString();
-
-            }
-
-        }
-
     }
 
     public override void OnNetworkDespawn()
 
     {
+        string myName = NetworkGameManager.Instance != null ? NetworkGameManager.Instance.SavedPlayerName : "NULL";
+        Debug.Log("OnNetworkSpawn で取得した名前: " + myName);
 
         connectedPlayerNames.OnListChanged -= OnPlayerListChanged;
 

@@ -1,0 +1,8 @@
+# すべてのテキストファイルをLFに統一
+* text=auto eol=lf
+
+# Unity特有のファイルは変換対象から外す（バイナリ扱い）
+*.unity binary
+*.asset binary
+*.prefab binary
+*.mat binary
