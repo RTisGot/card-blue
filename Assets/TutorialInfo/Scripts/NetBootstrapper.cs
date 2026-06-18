@@ -3,8 +3,11 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro; // TMP_InputFieldを使うために必要
 
-public class NetBootstrapper : MonoBehaviour
+/*public class NetBootstrapper : MonoBehaviour
 {
+    public static NetworkGameManager Instance;
+    public string SavedPlayerName = "未設定";
+
     [SerializeField] private Button hostButton;
     [SerializeField] private Button clientButton;
     [SerializeField] private TMP_InputField nameInputField;
@@ -16,6 +19,19 @@ public class NetBootstrapper : MonoBehaviour
     [SerializeField] private TMP_Text statusText;
 
     private bool isHosting; // ホストかクライアントかを一時保存するフラグ
+
+    private void Awake()
+    {
+        if (Instance == null)
+        {
+            Instance = this;
+            DontDestroyOnLoad(gameObject);
+        }
+        else
+        {
+            Destroy(gameObject);
+        }
+    }
 
     void Start()
     {
@@ -43,6 +59,7 @@ public class NetBootstrapper : MonoBehaviour
         hostButton.gameObject.SetActive(false);
         clientButton.gameObject.SetActive(false);
         if (nameInputField != null) nameInputField.gameObject.SetActive(true);
+        if (nameInputPanel != null) nameInputPanel.SetActive(true);
     }
 
     private void OnNameInputSubmitted(string playerName)
@@ -57,6 +74,53 @@ public class NetBootstrapper : MonoBehaviour
         if (statusText != null) statusText.text = "マッチング中...";
 
         // 接続処理
+        if (isHosting) NetworkManager.Singleton.StartHost();
+        else NetworkManager.Singleton.StartClient();
+    }
+}*/
+public class NetBootstrapper : MonoBehaviour
+{
+    [SerializeField] private Button hostButton;
+    [SerializeField] private Button clientButton;
+    [SerializeField] private TMP_InputField nameInputField;
+    [SerializeField] private GameObject nameInputPanel;
+
+    [SerializeField] private GameObject lobbyPanel;
+    [SerializeField] private GameObject gamePanel;
+    [SerializeField] private TMP_Text statusText;
+
+    private bool isHosting;
+
+    void Start()
+    {
+        if (nameInputPanel != null) nameInputPanel.SetActive(false);
+        if (gamePanel != null) gamePanel.SetActive(false);
+        if (nameInputField != null) nameInputField.gameObject.SetActive(false);
+
+        if (hostButton != null) hostButton.onClick.AddListener(() => PrepareConnection(true));
+        if (clientButton != null) clientButton.onClick.AddListener(() => PrepareConnection(false));
+        if (nameInputField != null) nameInputField.onSubmit.AddListener(OnNameInputSubmitted);
+    }
+
+    private void PrepareConnection(bool isHost)
+    {
+        isHosting = isHost;
+        hostButton.gameObject.SetActive(false);
+        clientButton.gameObject.SetActive(false);
+        if (nameInputField != null) nameInputField.gameObject.SetActive(true);
+        if (nameInputPanel != null) nameInputPanel.SetActive(true);
+    }
+
+    private void OnNameInputSubmitted(string playerName)
+    {
+        // ここで別のクラスである NetworkGameManager を参照します
+        if (NetworkGameManager.Instance != null)
+            NetworkGameManager.Instance.SavedPlayerName = playerName;
+
+        if (lobbyPanel != null) lobbyPanel.SetActive(false);
+        if (gamePanel != null) gamePanel.SetActive(true);
+        if (statusText != null) statusText.text = "マッチング中...";
+
         if (isHosting) NetworkManager.Singleton.StartHost();
         else NetworkManager.Singleton.StartClient();
     }

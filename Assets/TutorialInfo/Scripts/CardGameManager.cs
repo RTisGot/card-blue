@@ -18,59 +18,59 @@ public class CardGameManager : NetworkBehaviour
 
 
     public override void OnNetworkSpawn()
-
     {
-
-        // リストの中身が変わったときにUIを更新するイベントを登録
-
         connectedPlayerNames.OnListChanged += OnPlayerListChanged;
 
-        // サーバー（Host）だけが「誰かが入ってきた時」のイベントを監視する
-
         if (IsServer)
-
         {
-            // Host自身の名前を登録
+            // サーバー（ホスト）自身の名前を一度だけ追加
             string hostName = NetworkGameManager.Instance != null ? NetworkGameManager.Instance.SavedPlayerName : "HostPlayer";
-
             connectedPlayerNames.Add(hostName);
 
-            // 新しく接続
-            NetworkManager.Singleton.OnClientConnectedCallback += OnClientConnect;
-
-            // 誰かが切断時
-            NetworkManager.Singleton.OnClientDisconnectCallback += OnClientDisconnect;
-
+         
         }
-
-        // サーバーへクライアントの名前を通知する
-
-        if (!IsServer)
-
+        else
         {
-
-            string clientName = NetworkGameManager.Instance != null ? NetworkGameManager.Instance.SavedPlayerName : "GuestPlayer";
-
-            RegisterPlayerNameServerRpc(clientName);
-
+            
+            StartCoroutine(RegisterNameDelayed());
         }
 
+        // 4. 初期UI表示
         RefreshSeatUI();
-
     }
 
-    // クライアントがサーバーに送るRPC
-
-    [ServerRpc(RequireOwnership = false)]
-
-    private void RegisterPlayerNameServerRpc(string nameOfPlayer)
-
+    [Rpc(SendTo.Server)]
+    public void RegisterPlayerNameServerRpc(FixedString64Byties name)
     {
+        if(!connectedPlayerNames.Contains(name))
+        {
+            connectedPlayerNames.Add(name);
+   
+        }
+    }
 
-        // サーバー側でリストの末尾に名前を追加
+    private void OnPlayerListChanged(NetworkListEvent<FixedString64Bytes> changeEvent)
+    {
+        RefreshSeatUI();
+    }
 
-        connectedPlayerNames.Add(nameOfPlayer);
+    private System.Collections.IEnumerator RegisterNameDelayed()
+    {
+        yield return new WaitForSeconds(0.5f);
+        string clientName = NetworkGameManager.Instance != null ? NetworkGameManager.Instance.SavedPlayerName : "GuestPlayer";
+        RegisterPlayerNameServerRpc(clientName);
+    }
 
+    // サーバー側で名前を受けるRPC（最新の書き方）
+    [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
+    private void RegisterPlayerNameServerRpc(FixedString64Bytes nameOfPlayer)
+    {
+        // 重複登録防止のチェック（必要であれば）
+        if (!connectedPlayerNames.Contains(nameOfPlayer))
+        {
+            connectedPlayerNames.Add(nameOfPlayer);
+            Debug.Log($"サーバー: {nameOfPlayer} を追加しました");
+        }
     }
 
     // 新しいプレイヤーが接続したときに呼ばれる
@@ -122,6 +122,12 @@ public class CardGameManager : NetworkBehaviour
         for (int i = 0; i < seatNameTexts.Count; i++)
 
         {
+            if (seatNameTexts[i] == null)
+            {
+             
+                var found = GameObject.Find($"playerText{i}");
+                if (found != null) seatNameTexts[i] = found.GetComponent<TMPro.TextMeshProUGUI>();
+            }
 
             if (seatNameTexts[i] != null) seatNameTexts[i].text = "待機中...";
 
@@ -132,6 +138,7 @@ public class CardGameManager : NetworkBehaviour
             if (i < seatNameTexts.Count && seatNameTexts[i] != null)
             {
                 seatNameTexts[i].text = connectedPlayerNames[i].ToString();
+                Debug.Log($"[UI更新] {i}番目に名前セット: {connectedPlayerNames[i]}");
             }
         }
     }
@@ -139,21 +146,25 @@ public class CardGameManager : NetworkBehaviour
     public override void OnNetworkDespawn()
 
     {
-        string myName = NetworkGameManager.Instance != null ? NetworkGameManager.Instance.SavedPlayerName : "NULL";
+        string myName = (NetworkGameManager.Instance != null)
+                     ? NetworkGameManager.Instance.SavedPlayerName
+                     : "Unknown";
         Debug.Log("OnNetworkSpawn で取得した名前: " + myName);
 
-        connectedPlayerNames.OnListChanged -= OnPlayerListChanged;
+        RefreshSeatUI();
 
-        if (IsServer && NetworkManager.Singleton != null)
-
+        if (!IsServer)
         {
-
-            NetworkManager.Singleton.OnClientConnectedCallback -= OnClientConnect;
-
-            NetworkManager.Singleton.OnClientDisconnectCallback -= OnClientDisconnect;
-
+            RegisterPlayerNameServerRpc(myName);
+        }
+        else
+        {
+            // サーバー自身は直接追加
+            connectedPlayerNames.Add(myName);
         }
 
+       
+      
     }
 
 }

@@ -2,21 +2,33 @@ using UnityEngine;
 
 public class NetworkGameManager : MonoBehaviour
 {
-   public static NetworkGameManager Instance { get; private set; } //他のすくりぷとからアクセス
+    private static NetworkGameManager _instance;
+    public static NetworkGameManager Instance
+    {
+        get
+        {
+            if (_instance == null)
+            {
+                GameObject go = new GameObject("NetworkGameManager");
+                _instance = go.AddComponent<NetworkGameManager>();
+                DontDestroyOnLoad(go);
+            }
+            return _instance;
+        }
+    }
 
-    public string SavedPlayerName { get; set; } = "Player"; //プレイヤー名を保存
+    public string SavedPlayerName { get; set; } = "Player";
 
     private void Awake()
     {
-        if (Instance == null)
+        if (_instance == null)
         {
-            Instance = this;
-
-            DontDestroyOnLoad(gameObject); //シーンをまたいでも破棄されないようにする
+            _instance = this;
+            DontDestroyOnLoad(gameObject);
         }
-        else
+        else if (_instance != this)
         {
-                       Destroy(gameObject); //すでにインスタンスが存在する場合は破棄する
+            Destroy(gameObject);
         }
     }
 }
