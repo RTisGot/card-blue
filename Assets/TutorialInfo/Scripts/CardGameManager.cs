@@ -39,20 +39,17 @@ public class CardGameManager : NetworkBehaviour
         RefreshSeatUI();
     }
 
-    [Rpc(SendTo.Server)]
-    public void RegisterPlayerNameServerRpc(FixedString64Byties name)
+  /*  [Rpc(SendTo.Server)]
+    public void RegisterPlayerNameServerRpc(FixedString64Bytes name)
     {
         if(!connectedPlayerNames.Contains(name))
         {
             connectedPlayerNames.Add(name);
    
         }
-    }
+    }*/
 
-    private void OnPlayerListChanged(NetworkListEvent<FixedString64Bytes> changeEvent)
-    {
-        RefreshSeatUI();
-    }
+  
 
     private System.Collections.IEnumerator RegisterNameDelayed()
     {
