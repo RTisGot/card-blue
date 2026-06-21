@@ -2,31 +2,37 @@ using UnityEngine;
 
 public class NetworkGameManager : MonoBehaviour
 {
-    private static NetworkGameManager _instance;
+    private static NetworkGameManager instance;
+
     public static NetworkGameManager Instance
     {
         get
         {
-            if (_instance == null)
+            if (instance == null)
             {
-                GameObject go = new GameObject("NetworkGameManager");
-                _instance = go.AddComponent<NetworkGameManager>();
+                GameObject go = new GameObject(nameof(NetworkGameManager));
+                instance = go.AddComponent<NetworkGameManager>();
                 DontDestroyOnLoad(go);
             }
-            return _instance;
+
+            return instance;
         }
     }
 
     public string SavedPlayerName { get; set; } = "Player";
+    public string CurrentRoomId { get; set; } = string.Empty;
+    public string CurrentRoomPassword { get; set; } = string.Empty;
 
     private void Awake()
     {
-        if (_instance == null)
+        if (instance == null)
         {
-            _instance = this;
+            instance = this;
             DontDestroyOnLoad(gameObject);
+            return;
         }
-        else if (_instance != this)
+
+        if (instance != this)
         {
             Destroy(gameObject);
         }

@@ -1,127 +1,148 @@
-using Unity.Netcode;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-using TMPro; // TMP_InputFieldを使うために必要
 
-/*public class NetBootstrapper : MonoBehaviour
-{
-    public static NetworkGameManager Instance;
-    public string SavedPlayerName = "未設定";
-
-    [SerializeField] private Button hostButton;
-    [SerializeField] private Button clientButton;
-    [SerializeField] private TMP_InputField nameInputField;
-    [SerializeField] private GameObject nameInputPanel;
-
-    //パネル
-    [SerializeField] private GameObject lobbyPanel; // 接続ボタンがあるパネル
-    [SerializeField] private GameObject gamePanel;  // 名前一覧やゲーム画面のパネル
-    [SerializeField] private TMP_Text statusText;
-
-    private bool isHosting; // ホストかクライアントかを一時保存するフラグ
-
-    private void Awake()
-    {
-        if (Instance == null)
-        {
-            Instance = this;
-            DontDestroyOnLoad(gameObject);
-        }
-        else
-        {
-            Destroy(gameObject);
-        }
-    }
-
-    void Start()
-    {
-        if (nameInputPanel != null) nameInputPanel.SetActive(false);
-        if (gamePanel != null) gamePanel.SetActive(false);
-        // 最初は入力欄を隠しておく
-        if (nameInputField != null) nameInputField.gameObject.SetActive(false);
-
-        // ボタンの処理を「直接接続」ではなく「名前入力画面の表示」に変更
-        if (hostButton != null)
-            hostButton.onClick.AddListener(() => PrepareConnection(true));
-        if (clientButton != null)
-            clientButton.onClick.AddListener(() => PrepareConnection(false));
-
-        // 入力完了時（Enterキーを押した時）のイベント設定
-        if (nameInputField != null)
-            nameInputField.onSubmit.AddListener(OnNameInputSubmitted);
-    }
-
-    private void PrepareConnection(bool isHost)
-    {
-        isHosting = isHost;
-
-        // 接続ボタンを隠して入力欄を出す
-        hostButton.gameObject.SetActive(false);
-        clientButton.gameObject.SetActive(false);
-        if (nameInputField != null) nameInputField.gameObject.SetActive(true);
-        if (nameInputPanel != null) nameInputPanel.SetActive(true);
-    }
-
-    private void OnNameInputSubmitted(string playerName)
-    {
-        // 名前を保存
-        if (NetworkGameManager.Instance != null)
-            NetworkGameManager.Instance.SavedPlayerName = playerName;
-
-        // パネルを切り替え！
-        if (lobbyPanel != null) lobbyPanel.SetActive(false);
-        if (gamePanel != null) gamePanel.SetActive(true);
-        if (statusText != null) statusText.text = "マッチング中...";
-
-        // 接続処理
-        if (isHosting) NetworkManager.Singleton.StartHost();
-        else NetworkManager.Singleton.StartClient();
-    }
-}*/
 public class NetBootstrapper : MonoBehaviour
 {
     [SerializeField] private Button hostButton;
     [SerializeField] private Button clientButton;
+    [SerializeField] private Button nameConfirmButton;
     [SerializeField] private TMP_InputField nameInputField;
     [SerializeField] private GameObject nameInputPanel;
-
+    [SerializeField] private GameObject hostSetupPanel;
+    [SerializeField] private GameObject joinSetupPanel;
     [SerializeField] private GameObject lobbyPanel;
-    [SerializeField] private GameObject gamePanel;
+    [SerializeField] private GameObject matchingPanel;
     [SerializeField] private TMP_Text statusText;
 
-    private bool isHosting;
+    private bool selectedHost;
 
-    void Start()
+    private void Start()
     {
-        if (nameInputPanel != null) nameInputPanel.SetActive(false);
-        if (gamePanel != null) gamePanel.SetActive(false);
-        if (nameInputField != null) nameInputField.gameObject.SetActive(false);
+        if (nameInputPanel != null)
+        {
+            nameInputPanel.SetActive(false);
+        }
 
-        if (hostButton != null) hostButton.onClick.AddListener(() => PrepareConnection(true));
-        if (clientButton != null) clientButton.onClick.AddListener(() => PrepareConnection(false));
-        if (nameInputField != null) nameInputField.onSubmit.AddListener(OnNameInputSubmitted);
+        if (hostSetupPanel != null)
+        {
+            hostSetupPanel.SetActive(false);
+        }
+
+        if (joinSetupPanel != null)
+        {
+            joinSetupPanel.SetActive(false);
+        }
+
+        if (matchingPanel != null)
+        {
+            matchingPanel.SetActive(false);
+        }
+
+        if (hostButton != null)
+        {
+            hostButton.onClick.AddListener(ShowHostSetup);
+        }
+
+        if (clientButton != null)
+        {
+            clientButton.onClick.AddListener(ShowJoinSetup);
+        }
+
+        if (nameConfirmButton != null)
+        {
+            nameConfirmButton.onClick.AddListener(OnClick_ConfirmName);
+        }
+
+        if (nameInputField != null)
+        {
+            nameInputField.onSubmit.AddListener(_ => OnClick_ConfirmName());
+        }
     }
 
-    private void PrepareConnection(bool isHost)
+    private void ShowHostSetup()
     {
-        isHosting = isHost;
-        hostButton.gameObject.SetActive(false);
-        clientButton.gameObject.SetActive(false);
-        if (nameInputField != null) nameInputField.gameObject.SetActive(true);
-        if (nameInputPanel != null) nameInputPanel.SetActive(true);
+        selectedHost = true;
+        ShowNameInput();
     }
 
-    private void OnNameInputSubmitted(string playerName)
+    private void ShowJoinSetup()
     {
-        // ここで別のクラスである NetworkGameManager を参照します
-        if (NetworkGameManager.Instance != null)
-            NetworkGameManager.Instance.SavedPlayerName = playerName;
+        selectedHost = false;
+        ShowNameInput();
+    }
 
-        if (lobbyPanel != null) lobbyPanel.SetActive(false);
-        if (gamePanel != null) gamePanel.SetActive(true);
-        if (statusText != null) statusText.text = "マッチング中...";
+    public void OnClick_ConfirmName()
+    {
+        string playerName = nameInputField != null ? nameInputField.text.Trim() : string.Empty;
+        if (string.IsNullOrWhiteSpace(playerName))
+        {
+            SetStatus("Enter your name.");
+            return;
+        }
 
-        if (isHosting) NetworkManager.Singleton.StartHost();
-        else NetworkManager.Singleton.StartClient();
+        NetworkGameManager.Instance.SavedPlayerName = playerName;
+
+        if (nameInputPanel != null)
+        {
+            nameInputPanel.SetActive(false);
+        }
+
+        if (selectedHost)
+        {
+            if (hostSetupPanel != null)
+            {
+                hostSetupPanel.SetActive(true);
+            }
+
+            SetStatus("Set a room password.");
+            return;
+        }
+
+        if (joinSetupPanel != null)
+        {
+            joinSetupPanel.SetActive(true);
+        }
+
+        SetStatus("Enter the room ID and password.");
+    }
+
+    private void ShowNameInput()
+    {
+        if (lobbyPanel != null)
+        {
+            lobbyPanel.SetActive(false);
+        }
+
+        if (nameInputPanel != null)
+        {
+            nameInputPanel.SetActive(true);
+        }
+
+        if (hostSetupPanel != null)
+        {
+            hostSetupPanel.SetActive(false);
+        }
+
+        if (joinSetupPanel != null)
+        {
+            joinSetupPanel.SetActive(false);
+        }
+
+        SetStatus("Enter your name.");
+
+        if (nameInputField != null)
+        {
+            nameInputField.Select();
+            nameInputField.ActivateInputField();
+        }
+    }
+
+    private void SetStatus(string message)
+    {
+        if (statusText != null)
+        {
+            statusText.text = message;
+        }
     }
 }
