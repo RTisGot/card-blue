@@ -29,6 +29,9 @@ public class RelayManager : MonoBehaviour
     [Header("Status UI")]
     [SerializeField] private TMP_Text statusText;
 
+    [Header("Matching UI")]
+    [SerializeField] private UnityEngine.UI.Button startButton;
+
     private const int MaxConnections = 4;
     private string hostRoomPassword = "";
     private string pendingJoinRoomId = "";
@@ -161,17 +164,16 @@ public class RelayManager : MonoBehaviour
     {
         if (NetworkManager.Singleton == null) return;
 
-        // 接続が確立されている、またはリスニング中であれば停止処理を行う
+        
         if (NetworkManager.Singleton.IsListening || NetworkManager.Singleton.IsConnectedClient)
         {
             try
             {
-                // ★重要：先にTransportの接続を明示的に遮断することで、
-                // その後のShutdownで「not connected」エラーが出るのを防ぐ
+               
                 var transport = NetworkManager.Singleton.GetComponent<UnityTransport>();
                 if (transport != null)
                 {
-                    // Relayのセッションを強制的に無効化する
+                  
                     transport.DisconnectLocalClient();
                 }
 
@@ -211,5 +213,23 @@ public class RelayManager : MonoBehaviour
     private void SetStatus(string msg)
     {
         if (statusText != null) statusText.text = msg;
+    }
+
+    private void Update()
+    {
+       
+        if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsHost)
+        {
+            int connectedCount = NetworkManager.Singleton.ConnectedClientsList.Count;
+            startButton.interactable = (connectedCount >= 2);
+        }
+    }
+    public void OnClick_StartGame()
+    {
+        if (NetworkManager.Singleton.IsHost)
+        {
+            // ネットワーク上の全員を指定のシーンへ移動させる
+            NetworkManager.Singleton.SceneManager.LoadScene("MainGame", UnityEngine.SceneManagement.LoadSceneMode.Single);
+        }
     }
 }
