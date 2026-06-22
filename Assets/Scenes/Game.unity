@@ -4970,6 +4970,10 @@ PrefabInstance:
       value: 1887115393
       objectReference: {fileID: 0}
     - target: {fileID: 9209591548941635176, guid: 9e40894384ce3e74bb7fd1a5ce13ef22, type: 3}
+      propertyPath: statusText
+      value: 
+      objectReference: {fileID: 548746610}
+    - target: {fileID: 9209591548941635176, guid: 9e40894384ce3e74bb7fd1a5ce13ef22, type: 3}
       propertyPath: 'seatNameTexts.Array.data[0]'
       value: 
       objectReference: {fileID: 1297715615}

@@ -8,6 +8,7 @@ using Unity.Services.Core;
 using Unity.Services.Relay;
 using Unity.Services.Relay.Models;
 using UnityEngine;
+using UnityEngine.EventSystems;
 
 public class RelayManager : MonoBehaviour
 {
@@ -29,262 +30,186 @@ public class RelayManager : MonoBehaviour
     [SerializeField] private TMP_Text statusText;
 
     private const int MaxConnections = 4;
-    private string hostRoomPassword = string.Empty;
-    private string pendingJoinRoomId = string.Empty;
+    private string hostRoomPassword = "";
+    private string pendingJoinRoomId = "";
     private bool isStartingConnection;
 
-    private async void Awake()
+    [System.Serializable]
+    public class RelayConnectionPayload
     {
-        await InitializeUnityServices();
+        public string playerName;
+        public string roomPassword;
     }
+
+    private async void Awake() => await InitializeUnityServices();
 
     private void Start()
     {
-        if (hostPasswordInput != null)
-        {
-            hostPasswordInput.onSubmit.AddListener(_ => OnClick_StartHost());
-        }
+        if (hostPasswordInput != null) hostPasswordInput.onSubmit.AddListener((s) => OnClick_StartHost());
+        if (joinRoomIdInput != null) joinRoomIdInput.onSubmit.AddListener((s) => OnClick_Join());
+        if (joinPasswordInput != null) joinPasswordInput.onSubmit.AddListener((s) => OnClick_Join());
+    }
 
-        if (joinPasswordInput != null)
+    private void RegisterNetworkCallbacks()
+    {
+        UnregisterNetworkCallbacks();
+        if (NetworkManager.Singleton != null)
         {
-            joinPasswordInput.onSubmit.AddListener(_ => OnClick_Join());
+            NetworkManager.Singleton.OnClientConnectedCallback += OnClientConnected;
+            NetworkManager.Singleton.ConnectionApprovalCallback += ApprovalCheck;
+        }
+    }
+
+    private void UnregisterNetworkCallbacks()
+    {
+        if (NetworkManager.Singleton != null)
+        {
+            NetworkManager.Singleton.OnClientConnectedCallback -= OnClientConnected;
+            NetworkManager.Singleton.ConnectionApprovalCallback -= ApprovalCheck;
         }
     }
 
     public async void OnClick_StartHost()
     {
-        await StartHostWithRelay();
+        if (isStartingConnection) return;
+        isStartingConnection = true;
+        try
+        {
+            await InitializeUnityServices();
+            if (!await EnsureSignedIn()) return;
+            hostRoomPassword = hostPasswordInput?.text.Trim() ?? "";
+            await ShutdownIfRunning();
+            var allocation = await RelayService.Instance.CreateAllocationAsync(MaxConnections - 1);
+            var roomId = await RelayService.Instance.GetJoinCodeAsync(allocation.AllocationId);
+            var transport = NetworkManager.Singleton.GetComponent<UnityTransport>();
+            transport.SetRelayServerData(allocation.RelayServer.IpV4, (ushort)allocation.RelayServer.Port, allocation.AllocationIdBytes, allocation.Key, allocation.ConnectionData);
+            NetworkManager.Singleton.NetworkConfig.ConnectionApproval = true;
+            RegisterNetworkCallbacks();
+            if (NetworkManager.Singleton.StartHost())
+            {
+                if (roomIdText != null) roomIdText.text = roomId;
+                ShowMatchingPanel(roomId);
+            }
+        }
+        catch (System.Exception e) { SetStatus("Host Error: " + e.Message); }
+        finally { isStartingConnection = false; }
     }
 
     public async void OnClick_Join()
     {
-        string roomId = joinRoomIdInput != null ? joinRoomIdInput.text.Trim() : string.Empty;
-        string password = joinPasswordInput != null ? joinPasswordInput.text : string.Empty;
+        if (isStartingConnection) return;
+
+        string roomId = joinRoomIdInput?.text.Trim() ?? "";
+        string password = joinPasswordInput?.text.Trim() ?? "";
 
         if (string.IsNullOrWhiteSpace(roomId))
         {
-            SetStatus("Enter a room ID.");
-            return;
-        }
-
-        await JoinWithRelay(roomId, password);
-    }
-
-    public async Task<string> StartHostWithRelay()
-    {
-        if (isStartingConnection)
-        {
-            return string.Empty;
-        }
-
-        isStartingConnection = true;
-        await InitializeUnityServices();
-
-        string playerName = GetSavedPlayerName("HostPlayer");
-        hostRoomPassword = hostPasswordInput != null ? hostPasswordInput.text : string.Empty;
-
-        NetworkGameManager.Instance.SavedPlayerName = playerName;
-        NetworkGameManager.Instance.CurrentRoomPassword = hostRoomPassword;
-
-        Allocation allocation = await RelayService.Instance.CreateAllocationAsync(MaxConnections - 1);
-        string roomId = await RelayService.Instance.GetJoinCodeAsync(allocation.AllocationId);
-        NetworkGameManager.Instance.CurrentRoomId = roomId;
-
-        UnityTransport transport = NetworkManager.Singleton.GetComponent<UnityTransport>();
-        transport.SetRelayServerData(
-            allocation.RelayServer.IpV4,
-            (ushort)allocation.RelayServer.Port,
-            allocation.AllocationIdBytes,
-            allocation.Key,
-            allocation.ConnectionData);
-
-        NetworkManager.Singleton.ConnectionApprovalCallback -= ApprovalCheck;
-        NetworkManager.Singleton.ConnectionApprovalCallback += ApprovalCheck;
-        NetworkManager.Singleton.NetworkConfig.ConnectionApproval = true;
-
-        if (NetworkManager.Singleton.StartHost())
-        {
-            ShowMatchingPanel(roomId);
-            SetStatus("Waiting for players...");
-        }
-        else
-        {
-            SetStatus("Failed to start host.");
-            isStartingConnection = false;
-        }
-
-        return roomId;
-    }
-
-    public async Task JoinWithRelay(string roomId, string roomPassword)
-    {
-        if (isStartingConnection)
-        {
+            SetStatus("IDを入力してください");
             return;
         }
 
         isStartingConnection = true;
-        await InitializeUnityServices();
-
-        string playerName = GetSavedPlayerName("GuestPlayer");
-        NetworkGameManager.Instance.SavedPlayerName = playerName;
-        NetworkGameManager.Instance.CurrentRoomId = roomId;
-        NetworkGameManager.Instance.CurrentRoomPassword = roomPassword;
-
         try
         {
-            JoinAllocation joinAllocation = await RelayService.Instance.JoinAllocationAsync(roomId);
+            await InitializeUnityServices();
+            if (!await EnsureSignedIn()) return;
+            await ShutdownIfRunning();
 
-            UnityTransport transport = NetworkManager.Singleton.GetComponent<UnityTransport>();
-            transport.SetRelayServerData(
-                joinAllocation.RelayServer.IpV4,
-                (ushort)joinAllocation.RelayServer.Port,
-                joinAllocation.AllocationIdBytes,
-                joinAllocation.Key,
-                joinAllocation.ConnectionData,
-                joinAllocation.HostConnectionData);
+            var joinAllocation = await RelayService.Instance.JoinAllocationAsync(roomId);
+            var transport = NetworkManager.Singleton.GetComponent<UnityTransport>();
+            transport.SetRelayServerData(joinAllocation.RelayServer.IpV4, (ushort)joinAllocation.RelayServer.Port, joinAllocation.AllocationIdBytes, joinAllocation.Key, joinAllocation.ConnectionData, joinAllocation.HostConnectionData);
 
-            RelayConnectionPayload payload = new RelayConnectionPayload
-            {
-                playerName = playerName,
-                roomPassword = roomPassword
-            };
+            // ★ここに追加：クライアント側でも接続承認を有効化する
+            NetworkManager.Singleton.NetworkConfig.ConnectionApproval = true;
 
-            string json = JsonUtility.ToJson(payload);
-            NetworkManager.Singleton.NetworkConfig.ConnectionData = Encoding.UTF8.GetBytes(json);
+            var payload = new RelayConnectionPayload { playerName = "Guest", roomPassword = password };
+            NetworkManager.Singleton.NetworkConfig.ConnectionData = Encoding.UTF8.GetBytes(JsonUtility.ToJson(payload));
 
-            NetworkManager.Singleton.OnClientDisconnectCallback -= OnClientDisconnect;
-            NetworkManager.Singleton.OnClientDisconnectCallback += OnClientDisconnect;
-            NetworkManager.Singleton.OnClientConnectedCallback -= OnClientConnected;
-            NetworkManager.Singleton.OnClientConnectedCallback += OnClientConnected;
+            RegisterNetworkCallbacks();
+            pendingJoinRoomId = roomId;
 
-            if (NetworkManager.Singleton.StartClient())
-            {
-                pendingJoinRoomId = roomId;
-                SetStatus("Connecting...");
-            }
-            else
-            {
-                SetStatus("Failed to start client.");
-                isStartingConnection = false;
-            }
+            NetworkManager.Singleton.StartClient();
         }
-        catch (RelayServiceException exception)
-        {
-            SetStatus($"Could not join room: {exception.Message}");
-            isStartingConnection = false;
-        }
+        catch (System.Exception e) { SetStatus("Join Error: " + e.Message); isStartingConnection = false; }
     }
 
-    private void ApprovalCheck(NetworkManager.ConnectionApprovalRequest request, NetworkManager.ConnectionApprovalResponse response)
+    private void ApprovalCheck(NetworkManager.ConnectionApprovalRequest req, NetworkManager.ConnectionApprovalResponse res)
     {
-        response.Approved = false;
-        response.CreatePlayerObject = true;
-        response.Pending = false;
-
-        if (request.ClientNetworkId == NetworkManager.Singleton.LocalClientId)
-        {
-            response.Approved = true;
-            return;
-        }
-
-        string json = Encoding.UTF8.GetString(request.Payload);
-        RelayConnectionPayload payload = JsonUtility.FromJson<RelayConnectionPayload>(json);
-
-        if (payload.roomPassword == hostRoomPassword)
-        {
-            response.Approved = true;
-            return;
-        }
-
-        response.Reason = "Room password does not match.";
-        Debug.LogWarning($"Rejected client {request.ClientNetworkId}: room password does not match.");
-    }
-
-    private void OnClientDisconnect(ulong clientId)
-    {
-        if (NetworkManager.Singleton != null && clientId == NetworkManager.Singleton.LocalClientId)
-        {
-            pendingJoinRoomId = string.Empty;
-            isStartingConnection = false;
-            SetStatus("Disconnected. Check the room ID and password.");
-        }
+        res.CreatePlayerObject = true;
+        if (req.ClientNetworkId == NetworkManager.ServerClientId) { res.Approved = true; return; }
+        var payload = JsonUtility.FromJson<RelayConnectionPayload>(Encoding.UTF8.GetString(req.Payload));
+        res.Approved = (payload != null && payload.roomPassword == hostRoomPassword);
     }
 
     private void OnClientConnected(ulong clientId)
     {
-        if (NetworkManager.Singleton == null || clientId != NetworkManager.Singleton.LocalClientId)
+        if (clientId == NetworkManager.Singleton.LocalClientId && !NetworkManager.Singleton.IsHost)
         {
-            return;
-        }
+            // 参加したルームIDをUIにセット
+            if (roomIdText != null)
+            {
+                roomIdText.text = pendingJoinRoomId;
+            }
 
-        if (!NetworkManager.Singleton.IsHost && !string.IsNullOrEmpty(pendingJoinRoomId))
-        {
             ShowMatchingPanel(pendingJoinRoomId);
-            SetStatus("Matching...");
-            pendingJoinRoomId = string.Empty;
+            SetStatus("Joined");
             isStartingConnection = false;
+        }
+    }
+
+    private async Task ShutdownIfRunning()
+    {
+        if (NetworkManager.Singleton == null) return;
+
+        // 接続が確立されている、またはリスニング中であれば停止処理を行う
+        if (NetworkManager.Singleton.IsListening || NetworkManager.Singleton.IsConnectedClient)
+        {
+            try
+            {
+                // ★重要：先にTransportの接続を明示的に遮断することで、
+                // その後のShutdownで「not connected」エラーが出るのを防ぐ
+                var transport = NetworkManager.Singleton.GetComponent<UnityTransport>();
+                if (transport != null)
+                {
+                    // Relayのセッションを強制的に無効化する
+                    transport.DisconnectLocalClient();
+                }
+
+                // その後にManagerを停止
+                NetworkManager.Singleton.Shutdown();
+
+                // 完了まで待機
+                await Task.Delay(200);
+            }
+            catch (System.Exception e)
+            {
+                // ここまで来てもエラーが出る場合は、完全に無視する
+                Debug.Log($"[RelayManager] 安全なシャットダウン完了: {e.Message}");
+            }
         }
     }
 
     private async Task InitializeUnityServices()
     {
-        if (UnityServices.State == ServicesInitializationState.Uninitialized)
-        {
-            await UnityServices.InitializeAsync();
-        }
+        if (UnityServices.State != ServicesInitializationState.Initialized) await UnityServices.InitializeAsync();
+    }
 
-        if (!AuthenticationService.Instance.IsSignedIn)
-        {
-            await AuthenticationService.Instance.SignInAnonymouslyAsync();
-        }
+    private async Task<bool> EnsureSignedIn()
+    {
+        if (!AuthenticationService.Instance.IsSignedIn) await AuthenticationService.Instance.SignInAnonymouslyAsync();
+        return AuthenticationService.Instance.IsSignedIn;
     }
 
     private void ShowMatchingPanel(string roomId)
     {
-        if (lobbyPanel != null)
-        {
-            lobbyPanel.SetActive(false);
-        }
-
-        if (hostSetupPanel != null)
-        {
-            hostSetupPanel.SetActive(false);
-        }
-
-        if (joinSetupPanel != null)
-        {
-            joinSetupPanel.SetActive(false);
-        }
-
-        if (matchingPanel != null)
-        {
-            matchingPanel.SetActive(true);
-        }
-
-        if (roomIdText != null)
-        {
-            roomIdText.text = $"Room ID: {roomId}";
-        }
+        lobbyPanel?.SetActive(false);
+        hostSetupPanel?.SetActive(false);
+        joinSetupPanel?.SetActive(false);
+        matchingPanel?.SetActive(true);
     }
 
-    private void SetStatus(string message)
+    private void SetStatus(string msg)
     {
-        if (statusText != null)
-        {
-            statusText.text = message;
-        }
-
-        Debug.Log(message);
-    }
-
-    private static string GetSavedPlayerName(string fallback)
-    {
-        if (NetworkGameManager.Instance == null || string.IsNullOrWhiteSpace(NetworkGameManager.Instance.SavedPlayerName))
-        {
-            return fallback;
-        }
-
-        return NetworkGameManager.Instance.SavedPlayerName.Trim();
+        if (statusText != null) statusText.text = msg;
     }
 }
