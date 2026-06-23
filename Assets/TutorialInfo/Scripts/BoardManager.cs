@@ -1,6 +1,9 @@
+using System.Collections;
 using System.Collections.Generic;
+using Unity.Collections;
 using Unity.Netcode;
 using UnityEngine;
+using UnityEngine.UI;
 
 public enum CardType
 {
@@ -14,6 +17,8 @@ public enum CardType
 
 public class BoardManager : NetworkBehaviour
 {
+    private const int InitialHandSize = 6;
+
     //UI
     [Header("Board View")]
     [SerializeField] private Transform boardRoot;
@@ -24,41 +29,304 @@ public class BoardManager : NetworkBehaviour
     [SerializeField] private PlayerDisplay playerEntryPrefab; 
     [SerializeField] private Transform playerListParent;
 
-    private NetworkList<ulong> connectedPlayers = new NetworkList<ulong>();
+    private NetworkList<ulong> connectedPlayers;
+    private NetworkList<CardState> placedCards;
+    private NetworkList<PlayerInfo> players;
+    private NetworkList<DealtCard> dealtCards;
     private readonly Dictionary<Vector2Int, CardView> spawnedCards = new Dictionary<Vector2Int, CardView>();
+    private readonly List<PlayerDisplay> spawnedPlayerDisplays = new List<PlayerDisplay>();
+    private readonly List<CardView> spawnedHandCards = new List<CardView>();
+    private readonly List<CardType> deck = new List<CardType>();
+    private Transform handRoot;
+    private bool playerListPrepared;
 
-    //èâä˙âª
+    //ÂàùÊúüÂåñ
     private void Awake() 
     {
+        connectedPlayers = new NetworkList<ulong>();
         placedCards = new NetworkList<CardState>();
+        players = new NetworkList<PlayerInfo>();
+        dealtCards = new NetworkList<DealtCard>();
     }
 
-    //playerñºÇÃã§óL
-    private NetworkList<ulong> connectedPlayers;
-
-    //ÉlÉbÉgÉèÅ[ÉNèàóù
+    //„Éç„ÉÉ„Éà„ÉØ„Éº„ÇØÂá¶ÁêÜ
     public override void OnNetworkSpawn()
     {
-        connectedPlayers = new NetworkList<ulong>();
         if (IsServer)
         {
-            // ê⁄ë±Ç≥ÇÍÇƒÇ¢ÇÈëSàıÇÉäÉXÉgÇ…í«â¡
+            // Êé•Á∂ö„Åï„Çå„Å¶„ÅÑ„ÇãÂÖ®Âì°„Çí„É™„Çπ„Éà„Å´ËøΩÂä†
             foreach (var client in NetworkManager.Singleton.ConnectedClientsIds)
             {
                 connectedPlayers.Add(client);
             }
         }
         placedCards.OnListChanged += OnPlacedCardsChanged;
+        players.OnListChanged += OnPlayersChanged;
+        dealtCards.OnListChanged += OnDealtCardsChanged;
 
         if (IsServer && placedCards.Count == 0)
         {
             placedCards.Add(new CardState(0, 0, CardType.Start, false, NetworkManager.ServerClientId));
+            BuildAndShuffleDeck();
         }
 
+        StartCoroutine(RegisterLocalPlayerWhenReady());
         RebuildBoardView();
+        RefreshPlayerList();
+        RefreshLocalHand();
     }
 
-    //ÉJÅ[Éhîzíu
+    private IEnumerator RegisterLocalPlayerWhenReady()
+    {
+        while (IsSpawned && NetworkManager.Singleton != null)
+        {
+            ulong localClientId = NetworkManager.Singleton.LocalClientId;
+            bool isRegistered = false;
+
+            for (int i = 0; i < players.Count; i++)
+            {
+                if (players[i].clientId == localClientId)
+                {
+                    isRegistered = true;
+                    break;
+                }
+            }
+
+            if (isRegistered)
+            {
+                yield break;
+            }
+
+            string playerName = NetworkGameManager.Instance != null
+                ? NetworkGameManager.Instance.SavedPlayerName
+                : $"Player {localClientId}";
+
+            RegisterPlayerServerRpc(playerName);
+            yield return new WaitForSeconds(0.5f);
+        }
+    }
+
+    [ServerRpc(RequireOwnership = false)]
+    private void RegisterPlayerServerRpc(
+        FixedString64Bytes playerName,
+        ServerRpcParams rpcParams = default)
+    {
+        ulong clientId = rpcParams.Receive.SenderClientId;
+
+        for (int i = 0; i < players.Count; i++)
+        {
+            if (players[i].clientId == clientId)
+            {
+                return;
+            }
+        }
+
+        string safeName = playerName.ToString().Trim();
+        if (string.IsNullOrWhiteSpace(safeName))
+        {
+            safeName = $"Player {clientId}";
+        }
+
+        players.Add(new PlayerInfo(clientId, safeName));
+        DealInitialHand(clientId);
+        Debug.Log($"Player registered: {safeName} ({clientId})");
+    }
+
+    private void BuildAndShuffleDeck()
+    {
+        deck.Clear();
+
+        CardType[] drawableTypes =
+        {
+            CardType.PathStraight,
+            CardType.PathCorner,
+            CardType.PathTJunction,
+            CardType.PathCross,
+            CardType.DeadEnd
+        };
+
+        // 4‰∫∫„Å´6ÊûöÈÖç„Å£„Å¶„ÇÇ‰ΩôË£ï„Åå„ÅÇ„Çã„Çà„ÅÜ„ÄÅÂêÑÁ®ÆÈ°û„Çí10ÊûöÁî®ÊÑè„Åô„Çã„ÄÇ
+        foreach (CardType cardType in drawableTypes)
+        {
+            for (int i = 0; i < 10; i++)
+            {
+                deck.Add(cardType);
+            }
+        }
+
+        for (int i = deck.Count - 1; i > 0; i--)
+        {
+            int swapIndex = Random.Range(0, i + 1);
+            (deck[i], deck[swapIndex]) = (deck[swapIndex], deck[i]);
+        }
+    }
+
+    private void DealInitialHand(ulong clientId)
+    {
+        if (!IsServer)
+        {
+            return;
+        }
+
+        int currentCardCount = 0;
+        for (int i = 0; i < dealtCards.Count; i++)
+        {
+            if (dealtCards[i].ownerClientId == clientId)
+            {
+                currentCardCount++;
+            }
+        }
+
+        while (currentCardCount < InitialHandSize && deck.Count > 0)
+        {
+            int topIndex = deck.Count - 1;
+            CardType cardType = deck[topIndex];
+            deck.RemoveAt(topIndex);
+            dealtCards.Add(new DealtCard(clientId, cardType));
+            currentCardCount++;
+        }
+    }
+
+    private void OnPlayersChanged(NetworkListEvent<PlayerInfo> changeEvent)
+    {
+        RefreshPlayerList();
+    }
+
+    private void RefreshPlayerList()
+    {
+        if (playerListParent == null || playerEntryPrefab == null)
+        {
+            return;
+        }
+
+        if (!playerListPrepared)
+        {
+            for (int i = 0; i < playerListParent.childCount; i++)
+            {
+                Transform child = playerListParent.GetChild(i);
+                if (child.GetComponent<PlayerDisplay>() == null)
+                {
+                    child.gameObject.SetActive(false);
+                }
+            }
+
+            playerListPrepared = true;
+        }
+
+        foreach (PlayerDisplay display in spawnedPlayerDisplays)
+        {
+            if (display != null)
+            {
+                Destroy(display.gameObject);
+            }
+        }
+        spawnedPlayerDisplays.Clear();
+
+        playerEntryPrefab.gameObject.SetActive(players.Count > 0);
+
+        for (int i = 0; i < players.Count; i++)
+        {
+            PlayerDisplay display = i == 0
+                ? playerEntryPrefab
+                : Instantiate(playerEntryPrefab, playerListParent);
+
+            display.UpdateName(players[i].playerName.ToString());
+
+            RectTransform displayRect = display.GetComponent<RectTransform>();
+            if (displayRect != null)
+            {
+                displayRect.anchorMin = new Vector2(1f, 1f);
+                displayRect.anchorMax = new Vector2(1f, 1f);
+                displayRect.pivot = new Vector2(1f, 1f);
+                displayRect.anchoredPosition = new Vector2(-24f, -24f - (i * 60f));
+            }
+
+            if (i > 0)
+            {
+                spawnedPlayerDisplays.Add(display);
+            }
+        }
+    }
+
+    private void OnDealtCardsChanged(NetworkListEvent<DealtCard> changeEvent)
+    {
+        RefreshLocalHand();
+    }
+
+    private void RefreshLocalHand()
+    {
+        if (cardPrefab == null || NetworkManager.Singleton == null)
+        {
+            return;
+        }
+
+        EnsureHandRoot();
+        if (handRoot == null)
+        {
+            return;
+        }
+
+        foreach (CardView card in spawnedHandCards)
+        {
+            if (card != null)
+            {
+                Destroy(card.gameObject);
+            }
+        }
+        spawnedHandCards.Clear();
+
+        ulong localClientId = NetworkManager.Singleton.LocalClientId;
+        for (int i = 0; i < dealtCards.Count; i++)
+        {
+            if (dealtCards[i].ownerClientId != localClientId)
+            {
+                continue;
+            }
+
+            CardView card = Instantiate(cardPrefab, handRoot);
+            card.SetCard(new CardState(0, 0, dealtCards[i].cardType, false, localClientId));
+            spawnedHandCards.Add(card);
+        }
+    }
+
+    private void EnsureHandRoot()
+    {
+        if (handRoot != null)
+        {
+            return;
+        }
+
+        Canvas canvas = FindFirstObjectByType<Canvas>();
+        if (canvas == null)
+        {
+            return;
+        }
+
+        GameObject rootObject = new GameObject(
+            "LocalHand",
+            typeof(RectTransform),
+            typeof(HorizontalLayoutGroup));
+        rootObject.transform.SetParent(canvas.transform, false);
+
+        RectTransform rect = rootObject.GetComponent<RectTransform>();
+        rect.anchorMin = new Vector2(0.5f, 0f);
+        rect.anchorMax = new Vector2(0.5f, 0f);
+        rect.pivot = new Vector2(0.5f, 0f);
+        rect.anchoredPosition = new Vector2(0f, 24f);
+        rect.sizeDelta = new Vector2(720f, 130f);
+
+        HorizontalLayoutGroup layout = rootObject.GetComponent<HorizontalLayoutGroup>();
+        layout.spacing = 12f;
+        layout.childAlignment = TextAnchor.MiddleCenter;
+        layout.childControlWidth = false;
+        layout.childControlHeight = false;
+        layout.childForceExpandWidth = false;
+        layout.childForceExpandHeight = false;
+
+        handRoot = rect;
+    }
+
+    //„Ç´„Éº„ÉâÈÖçÁΩÆ
     public void TryPlaceCardFromUI(int x, int y)
     {
         RequestPlaceCardServerRpc(x, y, CardType.PathStraight, false);
@@ -179,10 +447,15 @@ public class BoardManager : NetworkBehaviour
     public override void OnNetworkDespawn()
     {
         placedCards.OnListChanged -= OnPlacedCardsChanged;
+        players.OnListChanged -= OnPlayersChanged;
+        dealtCards.OnListChanged -= OnDealtCardsChanged;
     }
 
     private void OnDestroy()
     {
+        connectedPlayers?.Dispose();
         placedCards?.Dispose();
+        players?.Dispose();
+        dealtCards?.Dispose();
     }
 }
