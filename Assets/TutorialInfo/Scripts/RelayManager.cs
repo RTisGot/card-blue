@@ -9,6 +9,7 @@ using Unity.Services.Relay;
 using Unity.Services.Relay.Models;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.SceneManagement;
 
 public class RelayManager : MonoBehaviour
 {
@@ -51,6 +52,8 @@ public class RelayManager : MonoBehaviour
         if (hostPasswordInput != null) hostPasswordInput.onSubmit.AddListener((s) => OnClick_StartHost());
         if (joinRoomIdInput != null) joinRoomIdInput.onSubmit.AddListener((s) => OnClick_Join());
         if (joinPasswordInput != null) joinPasswordInput.onSubmit.AddListener((s) => OnClick_Join());
+
+       
     }
 
     private void RegisterNetworkCallbacks()
@@ -229,7 +232,8 @@ public class RelayManager : MonoBehaviour
         if (NetworkManager.Singleton.IsHost)
         {
             // ネットワーク上の全員を指定のシーンへ移動させる
-            NetworkManager.Singleton.SceneManager.LoadScene("MainGame", UnityEngine.SceneManagement.LoadSceneMode.Single);
+            NetworkManager.Singleton.SceneManager.LoadScene("mainGame", UnityEngine.SceneManagement.LoadSceneMode.Single);
+            
         }
     }
 }

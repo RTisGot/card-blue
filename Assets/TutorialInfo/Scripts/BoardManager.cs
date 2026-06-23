@@ -2,57 +2,84 @@ using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
 
-public class SaboteurBoardManager : NetworkBehaviour
+public enum CardType
+{
+    Start,
+    PathStraight,
+    PathCorner,
+    PathTJunction,
+    PathCross,
+    DeadEnd
+}
+
+public class BoardManager : NetworkBehaviour
 {
     //UI
     [Header("Board View")]
     [SerializeField] private Transform boardRoot;
-    [SerializeField] private SaboteurBoardCardView cardPrefab;
+    [SerializeField] private CardView cardPrefab;
     [SerializeField] private float cellSize = 120f;
 
-    private NetworkList<SaboteurBoardCardState> placedCards;
-    private readonly Dictionary<Vector2Int, SaboteurBoardCardView> spawnedCards = new Dictionary<Vector2Int, SaboteurBoardCardView>();
+    [Header("UI Settings")]
+    [SerializeField] private PlayerDisplay playerEntryPrefab; 
+    [SerializeField] private Transform playerListParent;
+
+    private NetworkList<ulong> connectedPlayers = new NetworkList<ulong>();
+    private readonly Dictionary<Vector2Int, CardView> spawnedCards = new Dictionary<Vector2Int, CardView>();
 
     //初期化
-    private void Awake()
+    private void Awake() 
     {
-        placedCards = new NetworkList<SaboteurBoardCardState>();
+        placedCards = new NetworkList<CardState>();
     }
 
-    //
+    //player名の共有
+    private NetworkList<ulong> connectedPlayers;
+
+    //ネットワーク処理
     public override void OnNetworkSpawn()
     {
+        connectedPlayers = new NetworkList<ulong>();
+        if (IsServer)
+        {
+            // 接続されている全員をリストに追加
+            foreach (var client in NetworkManager.Singleton.ConnectedClientsIds)
+            {
+                connectedPlayers.Add(client);
+            }
+        }
         placedCards.OnListChanged += OnPlacedCardsChanged;
 
         if (IsServer && placedCards.Count == 0)
         {
-            placedCards.Add(new SaboteurBoardCardState(0, 0, SaboteurCardType.Start, false, NetworkManager.ServerClientId));
+            placedCards.Add(new CardState(0, 0, CardType.Start, false, NetworkManager.ServerClientId));
         }
 
         RebuildBoardView();
     }
 
+    //カード配置
     public void TryPlaceCardFromUI(int x, int y)
     {
-        RequestPlaceCardServerRpc(x, y, SaboteurCardType.PathStraight, false);
+        RequestPlaceCardServerRpc(x, y, CardType.PathStraight, false);
     }
 
-    public void TryPlaceCardFromUI(int x, int y, SaboteurCardType cardType, bool rotated)
+    public void TryPlaceCardFromUI(int x, int y, CardType cardType, bool rotated)
     {
         RequestPlaceCardServerRpc(x, y, cardType, rotated);
     }
 
     [ServerRpc(RequireOwnership = false)]
-    private void RequestPlaceCardServerRpc(int x, int y, SaboteurCardType cardType, bool rotated, ServerRpcParams rpcParams = default)
+    private void RequestPlaceCardServerRpc(int x, int y, CardType cardType, bool rotated, ServerRpcParams rpcParams = default)
     {
         Vector2Int position = new Vector2Int(x, y);
 
-        if (!CanPlaceCard(position))
+        if (!CanPlaceCard(position, cardType, rotated))
         {
             return;
         }
 
-        placedCards.Add(new SaboteurBoardCardState(
+        placedCards.Add(new CardState(
             x,
             y,
             cardType,
@@ -60,17 +87,23 @@ public class SaboteurBoardManager : NetworkBehaviour
             rpcParams.Receive.SenderClientId));
     }
 
-    private bool CanPlaceCard(Vector2Int position)
+    private bool CanPlaceCard(Vector2Int position, CardType cardType, bool rotated)
     {
+       
         if (HasCardAt(position))
         {
             return false;
         }
 
-        return HasCardAt(position + Vector2Int.up)
-            || HasCardAt(position + Vector2Int.down)
-            || HasCardAt(position + Vector2Int.left)
-            || HasCardAt(position + Vector2Int.right);
+      
+        bool hasNeighbor = HasCardAt(position + Vector2Int.up)
+                        || HasCardAt(position + Vector2Int.down)
+                        || HasCardAt(position + Vector2Int.left)
+                        || HasCardAt(position + Vector2Int.right);
+
+        if (!hasNeighbor) return false;
+
+        return CardRules.CanPlaceCard(position, cardType, rotated, placedCards);
     }
 
     private bool HasCardAt(Vector2Int position)
@@ -86,9 +119,9 @@ public class SaboteurBoardManager : NetworkBehaviour
         return false;
     }
 
-    private void OnPlacedCardsChanged(NetworkListEvent<SaboteurBoardCardState> changeEvent)
+    private void OnPlacedCardsChanged(NetworkListEvent<CardState> changeEvent)
     {
-        if (changeEvent.Type == NetworkListEvent<SaboteurBoardCardState>.EventType.Add)
+        if (changeEvent.Type == NetworkListEvent<CardState>.EventType.Add)
         {
             SpawnCardView(changeEvent.Value);
             return;
@@ -99,7 +132,7 @@ public class SaboteurBoardManager : NetworkBehaviour
 
     private void RebuildBoardView()
     {
-        foreach (SaboteurBoardCardView cardView in spawnedCards.Values)
+        foreach (CardView cardView in spawnedCards.Values)
         {
             if (cardView != null)
             {
@@ -115,7 +148,7 @@ public class SaboteurBoardManager : NetworkBehaviour
         }
     }
 
-    private void SpawnCardView(SaboteurBoardCardState state)
+    private void SpawnCardView(CardState state)
     {
         if (boardRoot == null || cardPrefab == null)
         {
@@ -128,7 +161,7 @@ public class SaboteurBoardManager : NetworkBehaviour
             return;
         }
 
-        SaboteurBoardCardView cardView = Instantiate(cardPrefab, boardRoot);
+        CardView cardView = Instantiate(cardPrefab, boardRoot);
         RectTransform rectTransform = cardView.GetComponent<RectTransform>();
         if (rectTransform != null)
         {
