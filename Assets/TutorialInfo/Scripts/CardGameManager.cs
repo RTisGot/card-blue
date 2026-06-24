@@ -17,10 +17,12 @@ public class CardGameManager : NetworkBehaviour
     private void Awake()
     {
         connectedPlayerNames = new NetworkList<FixedString64Bytes>();
+        
     }
 
     public override void OnNetworkSpawn()
     {
+        
         connectedPlayerNames.OnListChanged += OnPlayerListChanged;
 
         if (IsServer)
@@ -29,7 +31,9 @@ public class CardGameManager : NetworkBehaviour
                 ? NetworkGameManager.Instance.SavedPlayerName
                 : "HostPlayer";
 
-            AddPlayerName(hostName);
+           
+                AddPlayerName(hostName);
+            
         }
         else
         {
