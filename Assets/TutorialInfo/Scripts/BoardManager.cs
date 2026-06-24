@@ -17,8 +17,6 @@ public enum CardType
 
 public class BoardManager : NetworkBehaviour
 {
-    private const int InitialHandSize = 6;
-
     //UI
     [Header("Board View")]
     [SerializeField] private Transform boardRoot;
@@ -28,6 +26,10 @@ public class BoardManager : NetworkBehaviour
     [Header("UI Settings")]
     [SerializeField] private PlayerDisplay playerEntryPrefab; 
     [SerializeField] private Transform playerListParent;
+
+    [Header("Deck Settings")]
+    [SerializeField, Min(1)] private int initialHandSize = 6;
+    [SerializeField, Min(1)] private int copiesPerCardType = 10;
 
     private NetworkList<ulong> connectedPlayers;
     private NetworkList<CardState> placedCards;
@@ -81,29 +83,53 @@ public class BoardManager : NetworkBehaviour
         while (IsSpawned && NetworkManager.Singleton != null)
         {
             ulong localClientId = NetworkManager.Singleton.LocalClientId;
-            bool isRegistered = false;
+            bool hasFinalName = false;
 
             for (int i = 0; i < players.Count; i++)
             {
                 if (players[i].clientId == localClientId)
                 {
-                    isRegistered = true;
+                    string registeredName = players[i].playerName.ToString();
+                    hasFinalName = !IsPlaceholderName(registeredName);
                     break;
                 }
             }
 
-            if (isRegistered)
+            if (hasFinalName)
             {
                 yield break;
             }
 
-            string playerName = NetworkGameManager.Instance != null
-                ? NetworkGameManager.Instance.SavedPlayerName
-                : $"Player {localClientId}";
+            string playerName = GetLocalPlayerName(localClientId);
 
             RegisterPlayerServerRpc(playerName);
             yield return new WaitForSeconds(0.5f);
         }
+    }
+
+    private string GetLocalPlayerName(ulong localClientId)
+    {
+        if (NetworkManager.Singleton.LocalClient != null &&
+            NetworkManager.Singleton.LocalClient.PlayerObject != null &&
+            NetworkManager.Singleton.LocalClient.PlayerObject.TryGetComponent(
+                out PlayerNetworkData playerData))
+        {
+            string networkName = playerData.PlayerInfoVariable.Value.playerName.ToString().Trim();
+            if (!string.IsNullOrWhiteSpace(networkName) &&
+                networkName != "Guest" &&
+                networkName != "Player")
+            {
+                return networkName;
+            }
+        }
+
+        string savedName = NetworkGameManager.Instance != null
+            ? NetworkGameManager.Instance.SavedPlayerName.Trim()
+            : string.Empty;
+
+        return string.IsNullOrWhiteSpace(savedName)
+            ? $"Player {localClientId}"
+            : savedName;
     }
 
     [ServerRpc(RequireOwnership = false)]
@@ -112,24 +138,45 @@ public class BoardManager : NetworkBehaviour
         ServerRpcParams rpcParams = default)
     {
         ulong clientId = rpcParams.Receive.SenderClientId;
+        string safeName = playerName.ToString().Trim();
 
-        for (int i = 0; i < players.Count; i++)
+        if (RelayManager.TryGetPlayerName(clientId, out string approvedName) &&
+            !string.IsNullOrWhiteSpace(approvedName))
         {
-            if (players[i].clientId == clientId)
-            {
-                return;
-            }
+            safeName = approvedName.Trim();
         }
 
-        string safeName = playerName.ToString().Trim();
         if (string.IsNullOrWhiteSpace(safeName))
         {
             safeName = $"Player {clientId}";
         }
 
+        for (int i = 0; i < players.Count; i++)
+        {
+            if (players[i].clientId != clientId)
+            {
+                continue;
+            }
+
+            if (players[i].playerName.ToString() != safeName)
+            {
+                players[i] = new PlayerInfo(clientId, safeName);
+                Debug.Log($"Player name updated: {safeName} ({clientId})");
+            }
+            return;
+        }
+
         players.Add(new PlayerInfo(clientId, safeName));
         DealInitialHand(clientId);
         Debug.Log($"Player registered: {safeName} ({clientId})");
+    }
+
+    private static bool IsPlaceholderName(string playerName)
+    {
+        return string.IsNullOrWhiteSpace(playerName) ||
+               playerName == "Player" ||
+               playerName == "Guest" ||
+               playerName.StartsWith("Player ");
     }
 
     private void BuildAndShuffleDeck()
@@ -145,19 +192,13 @@ public class BoardManager : NetworkBehaviour
             CardType.DeadEnd
         };
 
-        // 4人に6枚配っても余裕があるよう、各種類を10枚用意する。
+        // Start以外のカードを山札へ追加する。
         foreach (CardType cardType in drawableTypes)
         {
-            for (int i = 0; i < 10; i++)
+            for (int i = 0; i < copiesPerCardType; i++)
             {
                 deck.Add(cardType);
             }
-        }
-
-        for (int i = deck.Count - 1; i > 0; i--)
-        {
-            int swapIndex = Random.Range(0, i + 1);
-            (deck[i], deck[swapIndex]) = (deck[swapIndex], deck[i]);
         }
     }
 
@@ -177,14 +218,16 @@ public class BoardManager : NetworkBehaviour
             }
         }
 
-        while (currentCardCount < InitialHandSize && deck.Count > 0)
+        while (currentCardCount < initialHandSize && deck.Count > 0)
         {
-            int topIndex = deck.Count - 1;
-            CardType cardType = deck[topIndex];
-            deck.RemoveAt(topIndex);
+            int randomIndex = Random.Range(0, deck.Count);
+            CardType cardType = deck[randomIndex];
+            deck.RemoveAt(randomIndex);
             dealtCards.Add(new DealtCard(clientId, cardType));
             currentCardCount++;
         }
+
+        Debug.Log($"Dealt {currentCardCount} random cards to client {clientId}. Deck remaining: {deck.Count}");
     }
 
     private void OnPlayersChanged(NetworkListEvent<PlayerInfo> changeEvent)

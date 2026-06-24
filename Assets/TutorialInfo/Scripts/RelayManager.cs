@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 using TMPro;
@@ -13,6 +14,9 @@ using UnityEngine.SceneManagement;
 
 public class RelayManager : MonoBehaviour
 {
+    private static readonly Dictionary<ulong, string> PlayerNamesByClientId =
+        new Dictionary<ulong, string>();
+
     [Header("Panels")]
     [SerializeField] private GameObject lobbyPanel;
     [SerializeField] private GameObject hostSetupPanel;
@@ -99,6 +103,10 @@ public class RelayManager : MonoBehaviour
             RegisterNetworkCallbacks(true);
             if (NetworkManager.Singleton.StartHost())
             {
+                PlayerNamesByClientId.Clear();
+                PlayerNamesByClientId[NetworkManager.ServerClientId] =
+                    GetSavedPlayerName("Host");
+
                 if (roomIdText != null) roomIdText.text = roomId;
                 ShowMatchingPanel(roomId);
             }
@@ -181,7 +189,14 @@ public class RelayManager : MonoBehaviour
         if (!res.Approved)
         {
             res.Reason = "部屋のパスワードが違います。";
+            return;
         }
+
+        string approvedName = payload.playerName?.Trim();
+        PlayerNamesByClientId[req.ClientNetworkId] =
+            string.IsNullOrWhiteSpace(approvedName)
+                ? $"Player {req.ClientNetworkId}"
+                : approvedName;
     }
 
     private void OnClientConnected(ulong clientId)
@@ -202,6 +217,11 @@ public class RelayManager : MonoBehaviour
 
     private void OnClientDisconnected(ulong clientId)
     {
+        if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsServer)
+        {
+            PlayerNamesByClientId.Remove(clientId);
+        }
+
         if (NetworkManager.Singleton == null ||
             clientId != NetworkManager.Singleton.LocalClientId ||
             NetworkManager.Singleton.IsHost)
@@ -214,6 +234,20 @@ public class RelayManager : MonoBehaviour
             ? "部屋に接続できませんでした。HostとClientを同じ最新版にしてください。"
             : "接続失敗: " + reason);
         isStartingConnection = false;
+    }
+
+    public static bool TryGetPlayerName(ulong clientId, out string playerName)
+    {
+        return PlayerNamesByClientId.TryGetValue(clientId, out playerName);
+    }
+
+    private static string GetSavedPlayerName(string fallback)
+    {
+        string savedName = NetworkGameManager.Instance != null
+            ? NetworkGameManager.Instance.SavedPlayerName.Trim()
+            : string.Empty;
+
+        return string.IsNullOrWhiteSpace(savedName) ? fallback : savedName;
     }
 
     private async Task ShutdownIfRunning()
