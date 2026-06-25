@@ -1,0 +1,73 @@
+using System.Threading.Tasks;
+using TMPro;
+using UnityEngine;
+using UnityEngine.UI;
+using UnityEngine.SceneManagement;
+
+public class SceneFader:MonoBehaviour
+{
+    [SerializeField] private Image fadeImage;
+
+    [Header("フェードインフェードアウトの速度調整")]
+    [SerializeField] private float fadeInDuration = 2.0f;   //フェードインにかかる時間
+    [SerializeField] private float fadeOutDuration = 0.5f;  //フェードアウトにかかる時間
+
+    private void Start()
+    {
+        //シーン開始時自動でフェードイン
+        _ = FadeInAsync();
+    }
+
+    //ボタンを押されたらシーンを呼び出す
+    public void ChangeScene(string sceneName)
+    {
+        if (string.IsNullOrEmpty(sceneName)) return;
+        _ = TransitionAndLoadScene(sceneName);
+    }
+
+    public async Task TransitionAndLoadScene(string sceneName)
+    {
+        //1.フェードアウト(透明から黒へ)
+        await FadeOutAsync();
+
+        //2.シーン切り替え
+        SceneManager.LoadScene(sceneName);
+    }
+
+    private async Task FadeInAsync()
+    {
+        fadeImage.gameObject.SetActive(true);
+        float elapsedTime = 0f;
+        Color color=fadeImage.color;
+
+        while (elapsedTime < fadeInDuration)
+        {
+            elapsedTime += Time.deltaTime;
+            color.a=Mathf.Lerp(1f,0f,elapsedTime/fadeInDuration);
+            fadeImage.color = color;
+            await Task.Yield(); //1フレーム待つ
+        }
+
+        color.a = 0f;
+        fadeImage.color = color;
+        fadeImage.gameObject.SetActive(false); //クリックを妨げないように非アクティブ化
+    }
+
+    private async Task FadeOutAsync()
+    {
+        fadeImage.gameObject.SetActive(true);
+        float elapsedTime = 0f;
+        Color color = fadeImage.color;
+
+        while(elapsedTime < fadeOutDuration)
+        {
+            elapsedTime += Time.deltaTime;
+            color.a = Mathf.Lerp(0f, 1f, elapsedTime / fadeOutDuration);
+            fadeImage.color = color;
+            await Task.Yield();
+        }
+
+        color.a = 1f;
+        fadeImage.color= color;
+    }
+}

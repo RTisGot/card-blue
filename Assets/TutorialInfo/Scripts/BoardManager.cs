@@ -5,15 +5,7 @@ using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.UI;
 
-public enum CardType
-{
-    Start,
-    PathStraight,
-    PathCorner,
-    PathTJunction,
-    PathCross,
-    DeadEnd
-}
+
 
 public class BoardManager : NetworkBehaviour
 {
@@ -49,6 +41,7 @@ public class BoardManager : NetworkBehaviour
         placedCards = new NetworkList<CardState>();
         players = new NetworkList<PlayerInfo>();
         dealtCards = new NetworkList<DealtCard>();
+   
     }
 
     //ネットワーク処理
@@ -185,11 +178,14 @@ public class BoardManager : NetworkBehaviour
 
         CardType[] drawableTypes =
         {
-            CardType.PathStraight,
+           CardType.PathStraight,
             CardType.PathCorner,
             CardType.PathTJunction,
             CardType.PathCross,
-            CardType.DeadEnd
+            CardType.DeadEnd,
+            CardType.ActionRepair,
+            CardType.ActionSabotage,
+            CardType.ActionMap
         };
 
         // Start以外のカードを山札へ追加する。
