@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 
 public class RuleUI : MonoBehaviour
 {
@@ -17,6 +18,8 @@ public class RuleUI : MonoBehaviour
 
     public void NextPage()
     {
+        Debug.Log("[RuleUI] NextPage clicked");
+
         if (currentPage < pages.Length - 1)
         {
             currentPage++;
@@ -26,21 +29,36 @@ public class RuleUI : MonoBehaviour
 
     public void BackPage()
     {
+        Debug.Log("[RuleUI] BackPage clicked");
+
         if (currentPage > 0)
         {
             currentPage--;
             ShowPage(currentPage);
+            return;
         }
+
+        SceneManager.LoadScene("TitleScene");
     }
 
     void ShowPage(int page)
     {
         for (int i = 0; i < pages.Length; i++)
         {
-            pages[i].SetActive(i == page);
+            if (pages[i] != null)
+            {
+                pages[i].SetActive(i == page);
+            }
         }
 
-        backButton.gameObject.SetActive(page > 0);
-        nextButton.gameObject.SetActive(page < pages.Length - 1);
+        if (backButton != null)
+        {
+            backButton.gameObject.SetActive(true);
+        }
+
+        if (nextButton != null)
+        {
+            nextButton.gameObject.SetActive(page < pages.Length - 1);
+        }
     }
 }
