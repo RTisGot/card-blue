@@ -37,8 +37,6 @@ public class RuleUI : MonoBehaviour
             ShowPage(currentPage);
             return;
         }
-
-        SceneManager.LoadScene("TitleScene");
     }
 
     void ShowPage(int page)
@@ -53,7 +51,7 @@ public class RuleUI : MonoBehaviour
 
         if (backButton != null)
         {
-            backButton.gameObject.SetActive(true);
+            backButton.gameObject.SetActive(page > 0);
         }
 
         if (nextButton != null)
