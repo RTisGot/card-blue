@@ -55,17 +55,17 @@ public class SceneFader : MonoBehaviour
             case "gamescene":
             case "game scene":
             case "lobby":
-                return "Game";
+                return "LobbyScene";
             case "maingame":
             case "maingamescene":
             case "main game":
             case "main game scene":
-                return "mainGame";
+                return "GameScene";
             case "rule":
             case "rules":
             case "rulescene":
             case "rule scene":
-                return "ルール";
+                return "RuleScene";
             default:
                 return normalized;
         }

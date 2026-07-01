@@ -319,7 +319,7 @@ public class RelayManager : MonoBehaviour
         if (NetworkManager.Singleton.IsHost)
         {
             // ネットワーク上の全員を指定のシーンへ移動させる
-            NetworkManager.Singleton.SceneManager.LoadScene("mainGame", UnityEngine.SceneManagement.LoadSceneMode.Single);
+            NetworkManager.Singleton.SceneManager.LoadScene("GameScene", UnityEngine.SceneManagement.LoadSceneMode.Single);
             
         }
     }
