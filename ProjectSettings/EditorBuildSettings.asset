@@ -12,10 +12,13 @@ EditorBuildSettings:
     path: Assets/Scenes/LobbyScene.unity
     guid: 5dcfe5d64dce4e84fa34993cb9da731c
   - enabled: 1
+    path: Assets/Scenes/RuleScene.unity
+    guid: 99c9720ab356a0642a771bea13969a05
+  - enabled: 1
     path: Assets/Scenes/GameScene.unity
     guid: c7d176d930fb2864f95b0ce53639eedc
   - enabled: 1
-    path: Assets/Scenes/RuleScene.unity
-    guid: 99c9720ab356a0642a771bea13969a05
+    path: Assets/Scenes/ResultScene.unity
+    guid: 49eb1172226664845b75f1b1679e3bac
   m_configObjects: {}
   m_UseUCBPForAssetBundles: 0
