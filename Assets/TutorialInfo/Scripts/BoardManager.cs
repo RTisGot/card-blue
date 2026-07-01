@@ -65,6 +65,14 @@ public class BoardManager : NetworkBehaviour
             BuildAndShuffleDeck();
         }
 
+        if (IsServer)
+        {
+            foreach (ulong clientId in NetworkManager.Singleton.ConnectedClientsIds)
+            {
+                RegisterOrUpdatePlayer(clientId, $"Player {clientId}");
+            }
+        }
+
         StartCoroutine(RegisterLocalPlayerWhenReady());
         RebuildBoardView();
         RefreshPlayerList();
@@ -131,7 +139,17 @@ public class BoardManager : NetworkBehaviour
         ServerRpcParams rpcParams = default)
     {
         ulong clientId = rpcParams.Receive.SenderClientId;
-        string safeName = playerName.ToString().Trim();
+        RegisterOrUpdatePlayer(clientId, playerName.ToString());
+    }
+
+    private void RegisterOrUpdatePlayer(ulong clientId, string requestedName)
+    {
+        if (!IsServer)
+        {
+            return;
+        }
+
+        string safeName = requestedName.Trim();
 
         if (RelayManager.TryGetPlayerName(clientId, out string approvedName) &&
             !string.IsNullOrWhiteSpace(approvedName))
@@ -156,6 +174,8 @@ public class BoardManager : NetworkBehaviour
                 players[i] = new PlayerInfo(clientId, safeName);
                 Debug.Log($"Player name updated: {safeName} ({clientId})");
             }
+
+            DealInitialHand(clientId);
             return;
         }
 
@@ -185,7 +205,8 @@ public class BoardManager : NetworkBehaviour
             CardType.DeadEnd,
             CardType.ActionRepair,
             CardType.ActionSabotage,
-            CardType.ActionMap
+            CardType.ActionMap,
+            CardType.ActionFallingRocks
         };
 
         // Start以外のカードを山札へ追加する。
@@ -315,6 +336,7 @@ public class BoardManager : NetworkBehaviour
         spawnedHandCards.Clear();
 
         ulong localClientId = NetworkManager.Singleton.LocalClientId;
+        int visibleCardCount = 0;
         for (int i = 0; i < dealtCards.Count; i++)
         {
             if (dealtCards[i].ownerClientId != localClientId)
@@ -323,9 +345,32 @@ public class BoardManager : NetworkBehaviour
             }
 
             CardView card = Instantiate(cardPrefab, handRoot);
+            card.gameObject.SetActive(true);
+
+            RectTransform cardRect = card.GetComponent<RectTransform>();
+            if (cardRect != null)
+            {
+                cardRect.localScale = Vector3.one;
+                cardRect.sizeDelta = new Vector2(100f, 140f);
+            }
+
+            LayoutElement layoutElement = card.GetComponent<LayoutElement>();
+            if (layoutElement == null)
+            {
+                layoutElement = card.gameObject.AddComponent<LayoutElement>();
+            }
+
+            layoutElement.preferredWidth = 100f;
+            layoutElement.preferredHeight = 140f;
+            layoutElement.flexibleWidth = 0f;
+            layoutElement.flexibleHeight = 0f;
+
             card.SetCard(dealtCards[i].cardType);
             spawnedHandCards.Add(card);
+            visibleCardCount++;
         }
+
+        Debug.Log($"Local hand refreshed: client {localClientId}, cards {visibleCardCount}");
     }
 
     private void EnsureHandRoot()
@@ -335,15 +380,25 @@ public class BoardManager : NetworkBehaviour
             return;
         }
 
-        Canvas canvas = FindFirstObjectByType<Canvas>();
-        if (canvas == null)
-        {
-            return;
-        }
+        GameObject canvasObject = new GameObject(
+            "LocalHandCanvas",
+            typeof(Canvas),
+            typeof(CanvasScaler),
+            typeof(GraphicRaycaster));
+
+        Canvas canvas = canvasObject.GetComponent<Canvas>();
+        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        canvas.sortingOrder = 1000;
+
+        CanvasScaler scaler = canvasObject.GetComponent<CanvasScaler>();
+        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        scaler.referenceResolution = new Vector2(1920f, 1080f);
+        scaler.matchWidthOrHeight = 0.5f;
 
         GameObject rootObject = new GameObject(
             "LocalHand",
             typeof(RectTransform),
+            typeof(Image),
             typeof(HorizontalLayoutGroup));
         rootObject.transform.SetParent(canvas.transform, false);
 
@@ -351,18 +406,24 @@ public class BoardManager : NetworkBehaviour
         rect.anchorMin = new Vector2(0.5f, 0f);
         rect.anchorMax = new Vector2(0.5f, 0f);
         rect.pivot = new Vector2(0.5f, 0f);
-        rect.anchoredPosition = new Vector2(0f, 24f);
-        rect.sizeDelta = new Vector2(720f, 130f);
+        rect.anchoredPosition = new Vector2(0f, 32f);
+        rect.sizeDelta = new Vector2(760f, 160f);
+
+        Image background = rootObject.GetComponent<Image>();
+        background.color = new Color(0f, 0f, 0f, 0.35f);
+        background.raycastTarget = false;
 
         HorizontalLayoutGroup layout = rootObject.GetComponent<HorizontalLayoutGroup>();
         layout.spacing = 12f;
         layout.childAlignment = TextAnchor.MiddleCenter;
-        layout.childControlWidth = false;
-        layout.childControlHeight = false;
+        layout.padding = new RectOffset(12, 12, 10, 10);
+        layout.childControlWidth = true;
+        layout.childControlHeight = true;
         layout.childForceExpandWidth = false;
         layout.childForceExpandHeight = false;
 
         handRoot = rect;
+        Debug.Log("Local hand canvas created");
     }
 
     //カード配置
