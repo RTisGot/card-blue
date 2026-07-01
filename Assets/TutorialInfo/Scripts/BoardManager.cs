@@ -323,7 +323,7 @@ public class BoardManager : NetworkBehaviour
             }
 
             CardView card = Instantiate(cardPrefab, handRoot);
-            card.SetCard(new CardState(0, 0, dealtCards[i].cardType, false, localClientId));
+            card.SetCard(dealtCards[i].cardType);
             spawnedHandCards.Add(card);
         }
     }
@@ -479,7 +479,7 @@ public class BoardManager : NetworkBehaviour
             cardView.transform.localPosition = new Vector3(state.x * cellSize, state.y * cellSize, 0f);
         }
 
-        cardView.SetCard(state);
+        cardView.SetCard(state.cardType);
         spawnedCards.Add(position, cardView);
     }
 

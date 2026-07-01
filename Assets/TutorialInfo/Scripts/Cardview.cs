@@ -40,9 +40,9 @@ public class CardView : MonoBehaviour
     [SerializeField] private Sprite treasuremap;
     [SerializeField] private Sprite Fallingrocks;
 
-    public void SetCard(CardState state)
+    public void SetCard(CardType type)
     {
-        switch (state.cardType)
+        switch (type)
         {
             // 道・行き止まりのケース
             case CardType.PathStraight: cardArtImage.sprite = LRload; break;
@@ -53,10 +53,10 @@ public class CardView : MonoBehaviour
 
             // アクションカードのケース
             case CardType.ActionRepair: cardArtImage.sprite = Lanternrepaire; break;
-            // 必要に応じて他のActionのケースも追加してください
+            
 
             default:
-                Debug.LogWarning("未定義のカードタイプです: " + state.cardType);
+                Debug.LogWarning("未定義のカードタイプです: " + type);
                 break;
         }
     }

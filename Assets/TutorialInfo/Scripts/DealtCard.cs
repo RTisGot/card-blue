@@ -1,3 +1,5 @@
+//@brief
+//unityネットワーク同期通信する為
 using System;
 using Unity.Netcode;
 
@@ -22,6 +24,7 @@ public struct DealtCard : INetworkSerializable, IEquatable<DealtCard>
         cardType = (CardType)cardTypeValue;
     }
 
+    //カードを比較して同じか確認
     public bool Equals(DealtCard other)
     {
         return ownerClientId == other.ownerClientId && cardType == other.cardType;
