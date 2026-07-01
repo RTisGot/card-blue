@@ -1818,6 +1818,7 @@ GameObject:
   - component: {fileID: 625813899}
   - component: {fileID: 625813898}
   - component: {fileID: 625813897}
+  - component: {fileID: 625813900}
   m_Layer: 5
   m_Name: NextButton
   m_TagString: Untagged
@@ -1842,7 +1843,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 659, y: 325}
+  m_AnchoredPosition: {x: 600, y: 365}
   m_SizeDelta: {x: 150, y: 200}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &625813897
@@ -1939,6 +1940,22 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 625813895}
   m_CullTransparentMesh: 1
+--- !u!114 &625813900
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 625813895}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0e79b6c6c5763714e943792c9c890fb4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ScaleOnHover
+  targetImage: {fileID: 625813896}
+  minScale: 1
+  maxScale: 1.1
+  speed: 0
 --- !u!1 &628539013
 GameObject:
   m_ObjectHideFlags: 0
@@ -2023,6 +2040,7 @@ GameObject:
   - component: {fileID: 709950539}
   - component: {fileID: 709950538}
   - component: {fileID: 709950537}
+  - component: {fileID: 709950540}
   m_Layer: 5
   m_Name: ReturnButton
   m_TagString: Untagged
@@ -2046,8 +2064,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -847, y: 441}
-  m_SizeDelta: {x: 247.3, y: 155.9963}
+  m_AnchoredPosition: {x: -844.7197, y: 441}
+  m_SizeDelta: {x: 280.6116, y: 155.9963}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &709950537
 MonoBehaviour:
@@ -2143,6 +2161,20 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 709950535}
   m_CullTransparentMesh: 1
+--- !u!114 &709950540
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 709950535}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4a70f887926fdea469a7a7d9e8f34e49, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RotateOnceOnHover
+  targetObject: {fileID: 709950536}
+  rotateDuration: 0.5
 --- !u!1 &785176481
 GameObject:
   m_ObjectHideFlags: 0
@@ -2567,6 +2599,7 @@ GameObject:
   - component: {fileID: 1283578094}
   - component: {fileID: 1283578093}
   - component: {fileID: 1283578092}
+  - component: {fileID: 1283578095}
   m_Layer: 5
   m_Name: BackButton
   m_TagString: Untagged
@@ -2591,7 +2624,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -682, y: 328.24}
+  m_AnchoredPosition: {x: -600, y: 365}
   m_SizeDelta: {x: 150, y: 200}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1283578092
@@ -2688,6 +2721,22 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1283578090}
   m_CullTransparentMesh: 1
+--- !u!114 &1283578095
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1283578090}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0e79b6c6c5763714e943792c9c890fb4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ScaleOnHover
+  targetImage: {fileID: 1283578091}
+  minScale: 1
+  maxScale: 1.1
+  speed: 0
 --- !u!1 &1296971614
 GameObject:
   m_ObjectHideFlags: 0
@@ -3007,7 +3056,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &1402845193
 RectTransform:
   m_ObjectHideFlags: 0
@@ -3725,7 +3774,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &2141546078
 RectTransform:
   m_ObjectHideFlags: 0
