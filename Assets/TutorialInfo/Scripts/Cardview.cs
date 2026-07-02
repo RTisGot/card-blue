@@ -1,6 +1,5 @@
 using UnityEngine;
 using UnityEngine.UI;
-using System.Collections.Generic;
 
 public class CardView : MonoBehaviour
 {
@@ -40,23 +39,53 @@ public class CardView : MonoBehaviour
     [SerializeField] private Sprite treasuremap;
     [SerializeField] private Sprite Fallingrocks;
 
-    public void SetCard(CardState state)
+    public void SetCard(CardType type)
     {
-        switch (state.cardType)
+        if (cardArtImage == null)
         {
-            // “¹Es‚«~‚Ü‚è‚ÌƒP[ƒX
-            case CardType.PathStraight: cardArtImage.sprite = LRload; break;
-            case CardType.PathCorner: cardArtImage.sprite = RDload; break;
-            case CardType.PathTJunction: cardArtImage.sprite = UDLload; break;
-            case CardType.PathCross: cardArtImage.sprite = UDLRload; break;
-            case CardType.DeadEnd: cardArtImage.sprite = Ddeadend; break;
+            cardArtImage = GetComponent<Image>();
+        }
 
-            // ƒAƒNƒVƒ‡ƒ“ƒJ[ƒh‚ÌƒP[ƒX
-            case CardType.ActionRepair: cardArtImage.sprite = Lanternrepaire; break;
-            // •K—v‚É‰‚¶‚Ä‘¼‚ÌAction‚ÌƒP[ƒX‚à’Ç‰Á‚µ‚Ä‚­‚¾‚³‚¢
+        if (cardArtImage == null)
+        {
+            Debug.LogWarning("CardViewã«ImageãŒè¨­å®šã•ã‚Œã¦ã„ã¾ã›ã‚“: " + name);
+            return;
+        }
 
+        switch (type)
+        {
+            case CardType.Start:
+                cardArtImage.sprite = UDLRload;
+                break;
+            case CardType.PathStraight:
+                cardArtImage.sprite = LRload;
+                break;
+            case CardType.PathCorner:
+                cardArtImage.sprite = RDload;
+                break;
+            case CardType.PathTJunction:
+                cardArtImage.sprite = UDLload;
+                break;
+            case CardType.PathCross:
+                cardArtImage.sprite = UDLRload;
+                break;
+            case CardType.DeadEnd:
+                cardArtImage.sprite = Ddeadend;
+                break;
+            case CardType.ActionRepair:
+                cardArtImage.sprite = Lanternrepaire;
+                break;
+            case CardType.ActionSabotage:
+                cardArtImage.sprite = Lanternban;
+                break;
+            case CardType.ActionMap:
+                cardArtImage.sprite = treasuremap;
+                break;
+            case CardType.ActionFallingRocks:
+                cardArtImage.sprite = Fallingrocks;
+                break;
             default:
-                Debug.LogWarning("–¢’è‹`‚ÌƒJ[ƒhƒ^ƒCƒv‚Å‚·: " + state.cardType);
+                Debug.LogWarning("æœªå®šç¾©ã®ã‚«ãƒ¼ãƒ‰ã‚¿ã‚¤ãƒ—ã§ã™: " + type);
                 break;
         }
     }

@@ -10,12 +10,12 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e651dbb3fbac04af2b8f5abf007ddc23, type: 3}
-  m_Name: CardGameManager
+  m_Name: card
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkPrefabsList
   IsDefault: 0
   List:
   - Override: 0
-    Prefab: {fileID: 4800274865024030926, guid: 9e40894384ce3e74bb7fd1a5ce13ef22, type: 3}
-    SourcePrefabToOverride: {fileID: 4800274865024030926, guid: 9e40894384ce3e74bb7fd1a5ce13ef22, type: 3}
+    Prefab: {fileID: 659461346938233526, guid: b5532de47e2f30a44bc0dc145f2fe4b0, type: 3}
+    SourcePrefabToOverride: {fileID: 659461346938233526, guid: b5532de47e2f30a44bc0dc145f2fe4b0, type: 3}
     SourceHashToOverride: 0
     OverridingTargetPrefab: {fileID: 0}

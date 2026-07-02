@@ -1,0 +1,145 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &659461346938233526
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1183466270820349005}
+  - component: {fileID: 3277262082768008331}
+  - component: {fileID: 5982137987157967292}
+  - component: {fileID: 937009503668165162}
+  - component: {fileID: 3218219355869854588}
+  m_Layer: 5
+  m_Name: card
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &1183466270820349005
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 659461346938233526}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: -31}
+  m_LocalScale: {x: 1, y: 1.5, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 100, y: 100}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!222 &3277262082768008331
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 659461346938233526}
+  m_CullTransparentMesh: 1
+--- !u!114 &5982137987157967292
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 659461346938233526}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
+  m_Material: {fileID: 0}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_RaycastTarget: 1
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  m_Sprite: {fileID: 21300000, guid: 6edd4308655e4e346befea1bf6276c39, type: 3}
+  m_Type: 0
+  m_PreserveAspect: 0
+  m_FillCenter: 1
+  m_FillMethod: 4
+  m_FillAmount: 1
+  m_FillClockwise: 1
+  m_FillOrigin: 0
+  m_UseSpriteMesh: 0
+  m_PixelsPerUnitMultiplier: 1
+--- !u!114 &937009503668165162
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 659461346938233526}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
+  GlobalObjectIdHash: 2108766381
+  InScenePlacedSourceGlobalObjectIdHash: 0
+  DeferredDespawnTick: 0
+  Ownership: 1
+  AlwaysReplicateAsRoot: 0
+  SynchronizeTransform: 1
+  ActiveSceneSynchronization: 0
+  SceneMigrationSynchronization: 1
+  SpawnWithObservers: 1
+  DontDestroyWithOwner: 0
+  AutoObjectParentSync: 1
+  SyncOwnerTransformWhenParented: 1
+  AllowOwnerToParent: 0
+--- !u!114 &3218219355869854588
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 659461346938233526}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5e8972a7ad232ce48bef925b71439fab, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CardView
+  cardArtImage: {fileID: 5982137987157967292}
+  LRdeadend: {fileID: 21300000, guid: c33426f085e0dc1428c1ff2fdeefa2af, type: 3}
+  LDdeadend: {fileID: 21300000, guid: 4be0b185528bf6e49af36b997d616084, type: 3}
+  UDLRdeadend: {fileID: 21300000, guid: fbb2b73274e807b4088e49f3f0759de9, type: 3}
+  UDLdeadend: {fileID: 21300000, guid: 1c4abbea1c3872a4aaf8b2ca8cbfa8bf, type: 3}
+  RDdeadend: {fileID: 21300000, guid: 0f00589fd8de68e42bcec37b346e7e05, type: 3}
+  Ldeadend: {fileID: 21300000, guid: 3b0302184e7d0074aba8896182bb57b2, type: 3}
+  Ddeadend: {fileID: 0}
+  Udeadend: {fileID: 21300000, guid: 12c3bb0bc7e076a49a9ba7b196081b43, type: 3}
+  ULRdeadend: {fileID: 21300000, guid: 0dfe9b6470a73e24484c81f9dbd192b0, type: 3}
+  UDLload: {fileID: 21300000, guid: dd2e12e2cda80384783ab05317bb8851, type: 3}
+  DRload: {fileID: 21300000, guid: bd25c0e020457044da95c4f450c5a6aa, type: 3}
+  URload: {fileID: 21300000, guid: 83278f53e134a824caa82a9814a21563, type: 3}
+  DLload: {fileID: 21300000, guid: 84cd9550cc4b9f24da3b92a415df5108, type: 3}
+  ULload: {fileID: 21300000, guid: 273176a6eff311d43921afb69ff71396, type: 3}
+  UDload: {fileID: 21300000, guid: 89b309200b257d146a6f8aae9be7ef1b, type: 3}
+  DLRload: {fileID: 21300000, guid: 84cd9550cc4b9f24da3b92a415df5108, type: 3}
+  ULRload: {fileID: 21300000, guid: 17262b79e1b6cc340a1b16da2b9be83c, type: 3}
+  LRload: {fileID: 21300000, guid: 0900931f9e8beb14d91b820597dce2ba, type: 3}
+  UDLRload: {fileID: 21300000, guid: 3a68dddbd99e5244b9a3c4029fe21040, type: 3}
+  RDload: {fileID: 21300000, guid: bd25c0e020457044da95c4f450c5a6aa, type: 3}
+  Lanternrepaire: {fileID: 21300000, guid: 78323d6a673b20d4a82797399e12759c, type: 3}
+  Lanternban: {fileID: 21300000, guid: 644e18572f7082a41ab1ea188644c8f5, type: 3}
+  Pickaxerepaire: {fileID: 21300000, guid: cf87760a1000b9a44b692d7302a93cb0, type: 3}
+  Pickaxeban: {fileID: 21300000, guid: 922e275f009453b48a700fa6b965b421, type: 3}
+  railcarrepaire: {fileID: 21300000, guid: 6148144947903064187c8740a0fd56d2, type: 3}
+  railcarban: {fileID: 21300000, guid: 371557e8d4499004498a4555c33a750c, type: 3}
+  treasuremap: {fileID: 21300000, guid: 953bd4e719255424cbf9e0fac218021b, type: 3}
+  Fallingrocks: {fileID: 21300000, guid: 91b0c152b6b358d47a414920cde5a68f, type: 3}
