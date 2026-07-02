@@ -4,6 +4,10 @@ using UnityEngine.UI;
 public class CardView : MonoBehaviour
 {
     [SerializeField] private Image cardArtImage;
+    public CardType CardType { get; private set; }
+
+    [Header("Special Sprites")]
+    [SerializeField] private Sprite startCard;
 
     [Header("Path Sprites")]
     [SerializeField] private Sprite LRdeadend;
@@ -40,6 +44,8 @@ public class CardView : MonoBehaviour
 
     public void SetCard(CardType type)
     {
+        CardType = type;
+
         if (cardArtImage == null)
         {
             cardArtImage = GetComponent<Image>();
@@ -47,13 +53,14 @@ public class CardView : MonoBehaviour
 
         if (cardArtImage == null)
         {
-            Debug.LogWarning("CardViewにImageが設定されていません: " + name);
+            Debug.LogWarning("CardView has no Image assigned: " + name);
             return;
         }
 
         switch (type)
         {
-            // --- Deadend系 ---
+            case CardType.Start: cardArtImage.sprite = startCard; break;
+            // --- Deadend cards ---
             case CardType.LRdeadend: cardArtImage.sprite = LRdeadend; break;
             case CardType.LDdeadend: cardArtImage.sprite = LDdeadend; break;
             case CardType.UDLRdeadend: cardArtImage.sprite = UDLRdeadend; break;
@@ -63,7 +70,7 @@ public class CardView : MonoBehaviour
             case CardType.Udeadend: cardArtImage.sprite = Udeadend; break;
             case CardType.ULRdeadend: cardArtImage.sprite = ULRdeadend; break;
 
-            // --- Load(道)系 ---
+            // --- Road cards ---
             case CardType.UDLload: cardArtImage.sprite = UDLload; break;
             case CardType.DRload: cardArtImage.sprite = DRload; break;
             case CardType.URload: cardArtImage.sprite = URload; break;
@@ -76,7 +83,7 @@ public class CardView : MonoBehaviour
             case CardType.UDLRload: cardArtImage.sprite = UDLRload; break;
             case CardType.RDload: cardArtImage.sprite = RDload; break;
 
-            // --- Action系 ---
+            // --- Action cards ---
             case CardType.Lanternrepaire: cardArtImage.sprite = Lanternrepaire; break;
             case CardType.Lanternban: cardArtImage.sprite = Lanternban; break;
             case CardType.Pickaxerepaire: cardArtImage.sprite = Pickaxerepaire; break;
@@ -84,10 +91,12 @@ public class CardView : MonoBehaviour
             case CardType.Railcarrepaire: cardArtImage.sprite = railcarrepaire; break;
             case CardType.Railcarban: cardArtImage.sprite = railcarban; break;
             case CardType.ActionMap: cardArtImage.sprite = treasuremap; break;
+            case CardType.Treasuremap: cardArtImage.sprite = treasuremap; break;
             case CardType.ActionFallingRocks: cardArtImage.sprite = Fallingrocks; break;
+            case CardType.Fallingrocks: cardArtImage.sprite = Fallingrocks; break;
 
             default:
-                Debug.LogWarning("未定義のカードタイプです: " + type);
+                Debug.LogWarning("Unknown card type: " + type);
                 break;
         }
     }

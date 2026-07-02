@@ -115,6 +115,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CardView
   cardArtImage: {fileID: 5982137987157967292}
+  startCard: {fileID: 21300000, guid: 71d828bd2d030df449d188fd6a72c049, type: 3}
   LRdeadend: {fileID: 21300000, guid: c33426f085e0dc1428c1ff2fdeefa2af, type: 3}
   LDdeadend: {fileID: 21300000, guid: 4be0b185528bf6e49af36b997d616084, type: 3}
   UDLRdeadend: {fileID: 21300000, guid: fbb2b73274e807b4088e49f3f0759de9, type: 3}

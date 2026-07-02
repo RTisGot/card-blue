@@ -24,6 +24,25 @@ public static class CardRules
             CardType.PathTJunction => PathDirection.Up | PathDirection.Down | PathDirection.Right,
             CardType.PathCross => PathDirection.Up | PathDirection.Down | PathDirection.Left | PathDirection.Right,
             CardType.DeadEnd => PathDirection.Up,
+            CardType.LRdeadend => PathDirection.Left | PathDirection.Right,
+            CardType.LDdeadend => PathDirection.Left | PathDirection.Down,
+            CardType.UDLRdeadend => PathDirection.Up | PathDirection.Down | PathDirection.Left | PathDirection.Right,
+            CardType.UDLdeadend => PathDirection.Up | PathDirection.Down | PathDirection.Left,
+            CardType.RDdeadend => PathDirection.Right | PathDirection.Down,
+            CardType.Ldeadend => PathDirection.Left,
+            CardType.Udeadend => PathDirection.Up,
+            CardType.ULRdeadend => PathDirection.Up | PathDirection.Left | PathDirection.Right,
+            CardType.UDLload => PathDirection.Up | PathDirection.Down | PathDirection.Left,
+            CardType.DRload => PathDirection.Down | PathDirection.Right,
+            CardType.URload => PathDirection.Up | PathDirection.Right,
+            CardType.DLload => PathDirection.Down | PathDirection.Left,
+            CardType.ULload => PathDirection.Up | PathDirection.Left,
+            CardType.UDload => PathDirection.Up | PathDirection.Down,
+            CardType.DLRload => PathDirection.Down | PathDirection.Left | PathDirection.Right,
+            CardType.ULRload => PathDirection.Up | PathDirection.Left | PathDirection.Right,
+            CardType.LRload => PathDirection.Left | PathDirection.Right,
+            CardType.UDLRload => PathDirection.Up | PathDirection.Down | PathDirection.Left | PathDirection.Right,
+            CardType.RDload => PathDirection.Right | PathDirection.Down,
             _ => PathDirection.None 
         };
     }
@@ -33,7 +52,7 @@ public static class CardRules
         PathDirection basePaths = GetPaths(type);
         if (!rotated) return basePaths;
 
-        // 回転している場合、ビットをずらす
+        // Existing rotation flag flips the card by 180 degrees.
         PathDirection rotatedPaths = PathDirection.None;
         if ((basePaths & PathDirection.Up) != 0) rotatedPaths |= PathDirection.Down;
         if ((basePaths & PathDirection.Down) != 0) rotatedPaths |= PathDirection.Up;
@@ -55,16 +74,17 @@ public static class CardRules
                 }
             }
 
-            // 隣接チェック接続判定
+            // Check road connectivity against adjacent cards.
             PathDirection newCardPaths = GetRotatedPaths(newCardType, rotated);
             bool hasNeighbor = false;
+            bool hasRoadConnection = false;
 
-            // 周囲4方向をチェック
+            // Check four directions around the target cell.
             foreach (var direction in new[] { Vector2Int.up, Vector2Int.down, Vector2Int.left, Vector2Int.right })
             {
                 Vector2Int neighborPos = targetPos + direction;
 
-                //
+
                 CardState? neighbor = null;
                 foreach (var c in placedCards)
                 {
@@ -80,16 +100,21 @@ public static class CardRules
                     hasNeighbor = true;
                     PathDirection neighborPaths = GetRotatedPaths(neighbor.Value.cardType, neighbor.Value.rotated);
 
-                    // 方向ごとの接続判定
+                    // Validate each directional edge.
                     if (direction == Vector2Int.up && !IsConnected(newCardPaths, PathDirection.Up, neighborPaths, PathDirection.Down)) return false;
                     if (direction == Vector2Int.down && !IsConnected(newCardPaths, PathDirection.Down, neighborPaths, PathDirection.Up)) return false;
                     if (direction == Vector2Int.left && !IsConnected(newCardPaths, PathDirection.Left, neighborPaths, PathDirection.Right)) return false;
                     if (direction == Vector2Int.right && !IsConnected(newCardPaths, PathDirection.Right, neighborPaths, PathDirection.Left)) return false;
+
+                    if (direction == Vector2Int.up && HasRoadConnection(newCardPaths, PathDirection.Up, neighborPaths, PathDirection.Down)) hasRoadConnection = true;
+                    if (direction == Vector2Int.down && HasRoadConnection(newCardPaths, PathDirection.Down, neighborPaths, PathDirection.Up)) hasRoadConnection = true;
+                    if (direction == Vector2Int.left && HasRoadConnection(newCardPaths, PathDirection.Left, neighborPaths, PathDirection.Right)) hasRoadConnection = true;
+                    if (direction == Vector2Int.right && HasRoadConnection(newCardPaths, PathDirection.Right, neighborPaths, PathDirection.Left)) hasRoadConnection = true;
                 }
             }
 
 
-            return hasNeighbor;
+            return hasNeighbor && hasRoadConnection;
         
     }
 
@@ -97,7 +122,12 @@ public static class CardRules
     {
         bool aHasPath = (aPaths & aDir) != 0;
         bool bHasPath = (bPaths & bDir) != 0;
-        // 両方に道がある両方に道がないならtrue
+        // Both sides must agree: road to road, wall to wall.
         return aHasPath == bHasPath;
+    }
+
+    private static bool HasRoadConnection(PathDirection aPaths, PathDirection aDir, PathDirection bPaths, PathDirection bDir)
+    {
+        return (aPaths & aDir) != 0 && (bPaths & bDir) != 0;
     }
 }
