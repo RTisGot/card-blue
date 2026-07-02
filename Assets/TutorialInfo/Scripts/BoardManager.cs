@@ -18,10 +18,19 @@ public class BoardManager : NetworkBehaviour
     [Header("UI Settings")]
     [SerializeField] private PlayerDisplay playerEntryPrefab; 
     [SerializeField] private Transform playerListParent;
+    [SerializeField] private Canvas mainCanvas;
 
     [Header("Deck Settings")]
     [SerializeField, Min(1)] private int initialHandSize = 6;
     [SerializeField, Min(1)] private int copiesPerCardType = 10;
+
+    //カードの種類とその枚数を定義する構造体
+    [System.Serializable]
+    public struct CardDistribution
+    {
+        public CardType cardType;
+        public int count;
+    }
 
     private NetworkList<ulong> connectedPlayers;
     private NetworkList<CardState> placedCards;
@@ -31,12 +40,16 @@ public class BoardManager : NetworkBehaviour
     private readonly List<PlayerDisplay> spawnedPlayerDisplays = new List<PlayerDisplay>();
     private readonly List<CardView> spawnedHandCards = new List<CardView>();
     private readonly List<CardType> deck = new List<CardType>();
+    public List<CardDistribution> deckComposition;
     private Transform handRoot;
     private bool playerListPrepared;
+    public static BoardManager Instance;//他scriptからアクセス可能
 
     //初期化
     private void Awake() 
     {
+        //自身をinsstanceに代入
+        Instance = this;
         connectedPlayers = new NetworkList<ulong>();
         placedCards = new NetworkList<CardState>();
         players = new NetworkList<PlayerInfo>();
@@ -79,6 +92,7 @@ public class BoardManager : NetworkBehaviour
         RefreshLocalHand();
     }
 
+    //プレイヤーの名前を待機して登録
     private IEnumerator RegisterLocalPlayerWhenReady()
     {
         while (IsSpawned && NetworkManager.Singleton != null)
@@ -142,6 +156,7 @@ public class BoardManager : NetworkBehaviour
         RegisterOrUpdatePlayer(clientId, playerName.ToString());
     }
 
+   
     private void RegisterOrUpdatePlayer(ulong clientId, string requestedName)
     {
         if (!IsServer)
@@ -196,26 +211,38 @@ public class BoardManager : NetworkBehaviour
     {
         deck.Clear();
 
-        CardType[] drawableTypes =
-        {
-           CardType.PathStraight,
-            CardType.PathCorner,
-            CardType.PathTJunction,
-            CardType.PathCross,
-            CardType.DeadEnd,
-            CardType.ActionRepair,
-            CardType.ActionSabotage,
-            CardType.ActionMap,
-            CardType.ActionFallingRocks
-        };
 
-        // Start以外のカードを山札へ追加する。
-        foreach (CardType cardType in drawableTypes)
+        AddCardsToDeck(CardType.LRdeadend,1);
+        AddCardsToDeck(CardType.LDdeadend,1);
+        AddCardsToDeck(CardType.UDLRdeadend,1);
+        AddCardsToDeck(CardType.UDLdeadend,1);
+        AddCardsToDeck(CardType.RDdeadend,1);
+        AddCardsToDeck(CardType.Ldeadend,1);
+        AddCardsToDeck(CardType.Udeadend,1);
+        AddCardsToDeck(CardType.ULRdeadend,1);
+        AddCardsToDeck(CardType.UDLload,2);
+        AddCardsToDeck(CardType.DLRload,2);
+        AddCardsToDeck(CardType.ULRload,4);
+        AddCardsToDeck(CardType.LRload,3);
+        AddCardsToDeck(CardType.UDLRload,4);
+        AddCardsToDeck(CardType.RDload,2);
+        AddCardsToDeck(CardType.Lanternrepaire,2);
+        AddCardsToDeck(CardType.Lanternban,3);
+        AddCardsToDeck(CardType.Pickaxerepaire,2);
+        AddCardsToDeck(CardType.Pickaxeban,3);
+        AddCardsToDeck(CardType.Railcarrepaire,2);
+        AddCardsToDeck(CardType.Railcarban,3);
+        AddCardsToDeck(CardType.Treasuremap,6);
+        AddCardsToDeck(CardType.Fallingrocks,3);
+        
+    }
+
+    //山札にカードを追加する
+    private void AddCardsToDeck(CardType type, int count)
+    {
+        for (int i = 0; i < count; i++)
         {
-            for (int i = 0; i < copiesPerCardType; i++)
-            {
-                deck.Add(cardType);
-            }
+            deck.Add(type);
         }
     }
 
@@ -373,57 +400,20 @@ public class BoardManager : NetworkBehaviour
         Debug.Log($"Local hand refreshed: client {localClientId}, cards {visibleCardCount}");
     }
 
+    public GameObject handRootPrefab;
     private void EnsureHandRoot()
     {
-        if (handRoot != null)
-        {
-            return;
-        }
+        if (handRoot != null) return;
 
-        GameObject canvasObject = new GameObject(
-            "LocalHandCanvas",
-            typeof(Canvas),
-            typeof(CanvasScaler),
-            typeof(GraphicRaycaster));
+        // Prefabから生成
+        GameObject rootObject = Instantiate(handRootPrefab);
+        rootObject.name = "LocalHand";
 
-        Canvas canvas = canvasObject.GetComponent<Canvas>();
-        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-        canvas.sortingOrder = 1000;
+        // 生成したオブジェクトをCanvasの子にする
+        rootObject.transform.SetParent(mainCanvas.transform, false);
 
-        CanvasScaler scaler = canvasObject.GetComponent<CanvasScaler>();
-        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        scaler.referenceResolution = new Vector2(1920f, 1080f);
-        scaler.matchWidthOrHeight = 0.5f;
-
-        GameObject rootObject = new GameObject(
-            "LocalHand",
-            typeof(RectTransform),
-            typeof(Image),
-            typeof(HorizontalLayoutGroup));
-        rootObject.transform.SetParent(canvas.transform, false);
-
-        RectTransform rect = rootObject.GetComponent<RectTransform>();
-        rect.anchorMin = new Vector2(0.5f, 0f);
-        rect.anchorMax = new Vector2(0.5f, 0f);
-        rect.pivot = new Vector2(0.5f, 0f);
-        rect.anchoredPosition = new Vector2(0f, 32f);
-        rect.sizeDelta = new Vector2(760f, 160f);
-
-        Image background = rootObject.GetComponent<Image>();
-        background.color = new Color(0f, 0f, 0f, 0.35f);
-        background.raycastTarget = false;
-
-        HorizontalLayoutGroup layout = rootObject.GetComponent<HorizontalLayoutGroup>();
-        layout.spacing = 12f;
-        layout.childAlignment = TextAnchor.MiddleCenter;
-        layout.padding = new RectOffset(12, 12, 10, 10);
-        layout.childControlWidth = true;
-        layout.childControlHeight = true;
-        layout.childForceExpandWidth = false;
-        layout.childForceExpandHeight = false;
-
-        handRoot = rect;
-        Debug.Log("Local hand canvas created");
+        handRoot = rootObject.GetComponent<RectTransform>();
+        Debug.Log("Local hand UI instantiated and parented to Canvas");
     }
 
     //カード配置

@@ -701,17 +701,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 349210650}
   m_CullTransparentMesh: 1
---- !u!114 &490018513 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 3867165443598969202, guid: cbc1cc53c8c3d6c4d978f8f21a481740, type: 3}
-  m_PrefabInstance: {fileID: 1962728867}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 219402830}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7b205081f51b8b744a58b65332757935, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CardGameManager
 --- !u!1 &548746608
 GameObject:
   m_ObjectHideFlags: 0
@@ -947,7 +936,6 @@ MonoBehaviour:
     Prefabs:
       NetworkPrefabsLists:
       - {fileID: 11400000, guid: 8c25284d83b5aaf42a3a730404a830e1, type: 2}
-      - {fileID: 11400000, guid: 654821321650ad94aa2c3c611ece88ba, type: 2}
     TickRate: 30
     ClientConnectionBufferTimeout: 10
     ConnectionApproval: 0
@@ -4326,6 +4314,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 53389947934463237, guid: cbc1cc53c8c3d6c4d978f8f21a481740, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 53389947934463237, guid: cbc1cc53c8c3d6c4d978f8f21a481740, type: 3}
       propertyPath: GlobalObjectIdHash
       value: 2540499861
