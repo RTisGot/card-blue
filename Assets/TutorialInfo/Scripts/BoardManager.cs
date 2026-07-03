@@ -6,21 +6,23 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 
-
-
+/// <summary>
+/// ゲームの盤面、プレイヤーの手札、ターン管理、ネットワーク同期を司るメインコントローラー。
+/// サーバー・クライアント間の状態の一貫性を維持する役割を持ちます。
+/// </summary>
 public class BoardManager : NetworkBehaviour
 {
-    private const int StartCardX = 1;
-    private const int StartCardY = 3;
+    [Header("Start Settings")]
+    [SerializeField] private Transform startCardRoot;  // Startカード専用の表示場所
 
-    // UI
+    // --- インスペクター設定エリア ---
     [Header("Board View")]
-    [SerializeField] private Transform boardRoot;
-    [SerializeField] private CardView cardPrefab;
-    [SerializeField] private float cellSize = 120f;
+    [SerializeField] private Transform boardRoot;        // 盤面上のカードを配置する親コンテナ
+    [SerializeField] private CardView cardPrefab;        // 生成するカードのプレハブ
+    [SerializeField] private float cellSize = 120f;      // グリッドの間隔
 
     [Header("UI Settings")]
-    [SerializeField] private PlayerDisplay playerEntryPrefab; 
+    [SerializeField] private PlayerDisplay playerEntryPrefab;
     [SerializeField] private Transform playerListParent;
     [SerializeField] private Canvas mainCanvas;
 
@@ -29,9 +31,19 @@ public class BoardManager : NetworkBehaviour
     [SerializeField, Min(1)] private int copiesPerCardType = 10;
 
     [Header("Turn UI")]
-    [SerializeField] private TMP_Text turnText;
+    [SerializeField] private TMP_Text turnText;          // 現在のラウンド・ターンを表示するUI
 
-    // Deck composition entry for the inspector.
+    [Header("Turn UI Messages")]
+    [SerializeField] private string waitingText = "待機中";
+    [SerializeField] private string myTurnText = "あなたの番です";
+    [SerializeField] private string roundFormat = "ラウンド {0}";
+    [SerializeField] private string turnFormat = "{0} のターン";
+
+    [Header("Layout Settings")]
+    [SerializeField] private RectTransform turnTextRect; // turnTextのRectTransformをアサイン
+    [SerializeField] private Transform myTurnPosition;    // 自分の番の時の位置
+    [SerializeField] private Transform waitingPosition;   // 待機中の位置
+
     [System.Serializable]
     public struct CardDistribution
     {
@@ -39,33 +51,41 @@ public class BoardManager : NetworkBehaviour
         public int count;
     }
 
+    // --- ネットワーク同期データ ---
     private NetworkList<ulong> connectedPlayers;
-    private NetworkList<CardState> placedCards;
-    private NetworkList<PlayerInfo> players;
-    private NetworkList<DealtCard> dealtCards;
+    private NetworkList<CardState> placedCards;          // 全プレイヤーで共有する盤面のカード状態
+    private NetworkList<PlayerInfo> players;             // 参加プレイヤーのリスト
+    private NetworkList<DealtCard> dealtCards;           // 手札の同期用リスト（所有者情報を含む）
+
+    // --- ローカル状態管理 ---
     private readonly Dictionary<Vector2Int, CardView> spawnedCards = new Dictionary<Vector2Int, CardView>();
     private readonly List<PlayerDisplay> spawnedPlayerDisplays = new List<PlayerDisplay>();
     private readonly List<CardView> spawnedHandCards = new List<CardView>();
-    private readonly List<CardType> deck = new List<CardType>();
+    private readonly List<CardType> deck = new List<CardType>(); // サーバーのみが保持する山札リスト
+
+    // --- 同期変数 ---
     private readonly NetworkVariable<int> currentPlayerIndex = new NetworkVariable<int>(0);
     private readonly NetworkVariable<int> roundNumber = new NetworkVariable<int>(1);
+
     public List<CardDistribution> deckComposition;
     private Transform handRoot;
     private bool playerListPrepared;
     public static BoardManager Instance;
 
-    // Initialize network-backed state.
-    private void Awake() 
+    private void Awake()
     {
         Instance = this;
+        // NetworkListの初期化
         connectedPlayers = new NetworkList<ulong>();
         placedCards = new NetworkList<CardState>();
         players = new NetworkList<PlayerInfo>();
         dealtCards = new NetworkList<DealtCard>();
-   
     }
 
-    // Network setup.
+    /// <summary>
+    /// ネットワーク接続が確立された後に実行される初期化処理。
+    /// 各クライアントでの状態同期やイベント購読。
+    /// </summary>
     public override void OnNetworkSpawn()
     {
         if (IsServer)
@@ -75,26 +95,34 @@ public class BoardManager : NetworkBehaviour
                 connectedPlayers.Add(client);
             }
         }
+
+        // 状態変更時のコールバック登録
         placedCards.OnListChanged += OnPlacedCardsChanged;
         players.OnListChanged += OnPlayersChanged;
         dealtCards.OnListChanged += OnDealtCardsChanged;
         currentPlayerIndex.OnValueChanged += OnTurnChanged;
         roundNumber.OnValueChanged += OnTurnChanged;
 
+        // サーバーのみ：盤面の初期カードと山札の生成
         if (IsServer && placedCards.Count == 0)
         {
-            placedCards.Add(new CardState(StartCardX, StartCardY, CardType.Start, false, NetworkManager.ServerClientId));
+            int startX = Mathf.RoundToInt(startCardRoot.localPosition.x);
+            int startY = Mathf.RoundToInt(startCardRoot.localPosition.y);
+            placedCards.Add(new CardState(startX, startY, CardType.Start, false, NetworkManager.ServerClientId));
             BuildAndShuffleDeck();
         }
 
+        // 接続済みプレイヤーの登録
         if (IsServer)
         {
             foreach (ulong clientId in NetworkManager.Singleton.ConnectedClientsIds)
             {
                 RegisterOrUpdatePlayer(clientId, $"Player {clientId}");
             }
+           
         }
 
+        // ビューの初期化
         StartCoroutine(RegisterLocalPlayerWhenReady());
         RebuildBoardView();
         RefreshPlayerList();
@@ -102,7 +130,14 @@ public class BoardManager : NetworkBehaviour
         RefreshTurnUI();
     }
 
-    // Keep trying until the local player has a final display name.
+    // --- プレイヤー管理ロジック ---
+
+    /// <summary>
+    /// プレイヤー名が解決されるまで待機し、サーバーに登録をリクエストします。
+    /// </summary>
+    private IEnumerator Register;
+
+    // 自分の名前をサーバーへの登録が完了するまで待機する
     private IEnumerator RegisterLocalPlayerWhenReady()
     {
         while (IsSpawned && NetworkManager.Singleton != null)
@@ -361,6 +396,7 @@ public class BoardManager : NetworkBehaviour
         }
     }
 
+    //手札の状態を更新する
     private void OnDealtCardsChanged(NetworkListEvent<DealtCard> changeEvent)
     {
         RefreshLocalHand();
@@ -373,34 +409,45 @@ public class BoardManager : NetworkBehaviour
             return;
         }
 
-        EnsureHandRoot();
-        if (handRoot == null)
-        {
-            return;
-        }
+        // 1. 全ての描画先をリセット
+        ClearContainer(handRoot); // EnsureHandRootで初期化される想定
+        ClearContainer(startCardRoot);
 
+        // 2. 手札UIリストをクリア
         foreach (CardView card in spawnedHandCards)
         {
-            if (card != null)
-            {
-                Destroy(card.gameObject);
-            }
+            if (card != null) Destroy(card.gameObject);
         }
         spawnedHandCards.Clear();
+
+        // 3. 必要な親ルートの確保
+        EnsureHandRoot();
+        if (handRoot == null) return;
 
         ulong localClientId = NetworkManager.Singleton.LocalClientId;
         bool isLocalTurn = IsLocalPlayerTurn();
         int visibleCardCount = 0;
+
+        Debug.Log($"[Client] Refreshing hand. Current dealtCards count: {dealtCards.Count}");
+
         for (int i = 0; i < dealtCards.Count; i++)
         {
+            // 自分以外のカードはスキップ
             if (dealtCards[i].ownerClientId != localClientId)
             {
                 continue;
             }
 
-            CardView card = Instantiate(cardPrefab, handRoot);
+            // tartカードなら startCardRoot、それ以外なら handRoot を選ぶ
+            Transform parentContainer = (dealtCards[i].cardType == CardType.Start)
+                                        ? startCardRoot
+                                        : handRoot;
+
+            // 指定したコンテナを親にして生成
+            CardView card = Instantiate(cardPrefab, parentContainer);
             card.gameObject.SetActive(true);
 
+            // UI設定（RectTransform / LayoutElement）
             RectTransform cardRect = card.GetComponent<RectTransform>();
             if (cardRect != null)
             {
@@ -408,24 +455,35 @@ public class BoardManager : NetworkBehaviour
                 cardRect.sizeDelta = new Vector2(100f, 140f);
             }
 
-            LayoutElement layoutElement = card.GetComponent<LayoutElement>();
-            if (layoutElement == null)
-            {
-                layoutElement = card.gameObject.AddComponent<LayoutElement>();
-            }
-
+            LayoutElement layoutElement = card.GetComponent<LayoutElement>()
+                                          ?? card.gameObject.AddComponent<LayoutElement>();
             layoutElement.preferredWidth = 100f;
             layoutElement.preferredHeight = 140f;
             layoutElement.flexibleWidth = 0f;
             layoutElement.flexibleHeight = 0f;
 
+            // カード設定
             card.SetCard(dealtCards[i].cardType);
-            SetCardInteractivity(card, isLocalTurn);
+
+            // 通常の手札エリアにあるカードだけをインタラクティブにする
+            bool isInteractable = (parentContainer == handRoot) && isLocalTurn;
+            SetCardInteractivity(card, isInteractable);
+
             spawnedHandCards.Add(card);
             visibleCardCount++;
         }
 
         Debug.Log($"Local hand refreshed: client {localClientId}, cards {visibleCardCount}");
+    }
+
+    // ヘルパーメソッド：コンテナの中身をすべて削除
+    private void ClearContainer(Transform container)
+    {
+        if (container == null) return;
+        foreach (Transform child in container)
+        {
+            Destroy(child.gameObject);
+        }
     }
 
     public GameObject handRootPrefab;
@@ -461,6 +519,7 @@ public class BoardManager : NetworkBehaviour
             && CanPlaceCard(new Vector2Int(x, y), cardType, rotated);
     }
 
+    //おける場所のハイライト表示
     public void ShowPlacementHighlights(CardType cardType, bool rotated)
     {
         foreach (CellComponent cell in FindObjectsOfType<CellComponent>())
@@ -488,6 +547,7 @@ public class BoardManager : NetworkBehaviour
         RequestDiscardAndDrawServerRpc(cardType);
     }
 
+    //カードを盤面に置く処理
     [ServerRpc(RequireOwnership = false)]
     private void RequestPlaceCardServerRpc(int x, int y, CardType cardType, bool rotated, ServerRpcParams rpcParams = default)
     {
@@ -504,7 +564,8 @@ public class BoardManager : NetworkBehaviour
             return;
         }
 
-        RemoveCardFromHand(senderClientId, cardType);
+        RemoveCardFromHand(senderClientId, cardType); //手札からカードを削除
+        //盤面にカードを追加
         placedCards.Add(new CardState(
             x,
             y,
@@ -515,6 +576,7 @@ public class BoardManager : NetworkBehaviour
         AdvanceTurn();
     }
 
+    //アクションカードをプレイする処理
     [ServerRpc(RequireOwnership = false)]
     private void RequestPlayActionCardServerRpc(CardType cardType, ServerRpcParams rpcParams = default)
     {
@@ -543,15 +605,16 @@ public class BoardManager : NetworkBehaviour
         AdvanceTurn();
     }
 
+    //指定された位置にカードを置けるかを確認する
     private bool CanPlaceCard(Vector2Int position, CardType cardType, bool rotated)
     {
        
-        if (HasCardAt(position))
+        if (HasCardAt(position)) //カードが置かれているか
         {
             return false;
         }
 
-      
+        //上下いずれかにカードが置かれているかを確認
         bool hasNeighbor = HasCardAt(position + Vector2Int.up)
                         || HasCardAt(position + Vector2Int.down)
                         || HasCardAt(position + Vector2Int.left)
@@ -576,6 +639,7 @@ public class BoardManager : NetworkBehaviour
         return false;
     }
 
+    //指定された位置のカードがスタートカードに接続しているかを確認する
     private bool ConnectsToStart(Vector2Int position, CardType cardType, bool rotated)
     {
         foreach (Vector2Int direction in GetCardDirections())
@@ -600,10 +664,11 @@ public class BoardManager : NetworkBehaviour
         return false;
     }
 
+    //指定された位置のカードがスタートカードに接続しているかを確認する
     private bool ExistingCardConnectsToStart(Vector2Int startPosition)
     {
-        Queue<Vector2Int> queue = new Queue<Vector2Int>();
-        HashSet<Vector2Int> visited = new HashSet<Vector2Int>();
+        Queue<Vector2Int> queue = new Queue<Vector2Int>();       //次に探索する座標の待機
+        HashSet<Vector2Int> visited = new HashSet<Vector2Int>(); //既に探索した座標の記録
 
         queue.Enqueue(startPosition);
         visited.Add(startPosition);
@@ -642,7 +707,8 @@ public class BoardManager : NetworkBehaviour
         return false;
     }
 
-    private bool TryGetPlacedCard(Vector2Int position, out CardState cardState)
+    // 指定された位置にカードが置かれているかを確認し、カードの状態を取得する
+    private bool TryGetPlacedCard(Vector2Int position, out CardState cardState)//座標の取得とカードの中身
     {
         for (int i = 0; i < placedCards.Count; i++)
         {
@@ -657,6 +723,7 @@ public class BoardManager : NetworkBehaviour
         return false;
     }
 
+    //指定された方向に道路が接続しているかを確認する
     private static bool HasRoadConnection(CardType cardType, bool rotated, Vector2Int direction, CardState neighbor)
     {
         PathDirection cardPaths = CardRules.GetRotatedPaths(cardType, rotated);
@@ -689,11 +756,13 @@ public class BoardManager : NetworkBehaviour
         return new[] { Vector2Int.up, Vector2Int.down, Vector2Int.left, Vector2Int.right };
     }
 
+    //行動圏内のプレイヤーかどうかを確認する
     private bool CanAct(ulong clientId)
     {
         return IsServer && players.Count > 0 && players[currentPlayerIndex.Value].clientId == clientId;
     }
 
+    //指定されたプレイヤーが手札に特定のカードを持っているかを確認する
     private bool HasCardInHand(ulong clientId, CardType cardType)
     {
         for (int i = 0; i < dealtCards.Count; i++)
@@ -707,33 +776,37 @@ public class BoardManager : NetworkBehaviour
         return false;
     }
 
+    //カードを手札から削除する処理
     private bool RemoveCardFromHand(ulong clientId, CardType cardType)
     {
         for (int i = 0; i < dealtCards.Count; i++)
         {
             if (dealtCards[i].ownerClientId == clientId && dealtCards[i].cardType == cardType)
             {
+                Debug.Log($"[Server] Removing card {cardType} from {clientId}. Remaining count: {dealtCards.Count - 1}");
                 dealtCards.RemoveAt(i);
                 return true;
             }
         }
-
         return false;
     }
 
+ //カードを引く処理
     private void DrawCard(ulong clientId)
     {
+        //山札の状態を確認
         if (deck.Count == 0)
         {
             return;
         }
 
-        int randomIndex = Random.Range(0, deck.Count);
-        CardType cardType = deck[randomIndex];
-        deck.RemoveAt(randomIndex);
-        dealtCards.Add(new DealtCard(clientId, cardType));
+        int randomIndex = Random.Range(0, deck.Count);      //山札からランダムにカードを引く
+        CardType cardType = deck[randomIndex];              //引いたカードの種類を取得
+        deck.RemoveAt(randomIndex);                         //山札から引いたカードを削除
+        dealtCards.Add(new DealtCard(clientId, cardType));  //引いたカードをプレイヤーの手札に追加
     }
 
+    //次のプレイヤーにターンを進める処理
     private void AdvanceTurn()
     {
         if (!IsServer || players.Count == 0)
@@ -761,60 +834,63 @@ public class BoardManager : NetworkBehaviour
 
     private void RefreshTurnUI()
     {
-        EnsureTurnText();
-
-        if (turnText == null)
-        {
-            return;
-        }
+        if (turnText == null) return;
 
         if (players.Count == 0)
         {
-            turnText.text = "\u30e9\u30a6\u30f3\u30c9 1\n\u5f85\u6a5f\u4e2d";
+            // インスペクターで設定したデフォルトの待機状態を表示
+            turnText.text = string.Format(roundFormat, 1) + "\n" + waitingText;
             return;
         }
 
         int safeIndex = Mathf.Clamp(currentPlayerIndex.Value, 0, players.Count - 1);
-        string currentName = players[safeIndex].playerName.ToString();
-        string localTurnLine = NetworkManager.Singleton != null &&
-                               players[safeIndex].clientId == NetworkManager.Singleton.LocalClientId
-            ? "\u3042\u306a\u305f\u306e\u756a\u3067\u3059"
-            : "\u5f85\u6a5f\u4e2d";
+        var currentPlayer = players[safeIndex];
 
-        turnText.text = $"\u30e9\u30a6\u30f3\u30c9 {roundNumber.Value}\n{currentName} \u306e\u30bf\u30fc\u30f3\n{localTurnLine}";
+        bool isLocalTurn = NetworkManager.Singleton != null &&
+                           currentPlayer.clientId == NetworkManager.Singleton.LocalClientId;
+
+        // 設定したメッセージ変数を利用
+        string statusText = isLocalTurn ? myTurnText : waitingText;
+        string roundText = string.Format(roundFormat, roundNumber.Value);
+        string nameText = string.Format(turnFormat, currentPlayer.playerName.ToString());
+
+        if (myTurnPosition != null && waitingPosition != null)
+        {
+            turnTextRect.position = isLocalTurn ? myTurnPosition.position : waitingPosition.position;
+        }
+
+        turnText.text = $"{roundText}\n{nameText}\n{statusText}";
     }
 
+    //プレイヤーのターン表示を更新するため
     private void EnsureTurnText()
     {
-        if (turnText != null || mainCanvas == null)
+        if (turnText != null)
         {
             return;
         }
 
-        GameObject turnObject = new GameObject("RoundTurnText", typeof(RectTransform), typeof(TextMeshProUGUI));
-        turnObject.transform.SetParent(mainCanvas.transform, false);
+     if(players.Count == 0)
+     {
+            turnText.text = "ラウンド 1\n待機中";
+            return;
+     }
 
-        RectTransform rectTransform = turnObject.GetComponent<RectTransform>();
-        rectTransform.anchorMin = new Vector2(1f, 1f);
-        rectTransform.anchorMax = new Vector2(1f, 1f);
-        rectTransform.pivot = new Vector2(1f, 1f);
-        rectTransform.anchoredPosition = new Vector2(-24f, -24f);
-        rectTransform.sizeDelta = new Vector2(360f, 120f);
-
-        turnText = turnObject.GetComponent<TextMeshProUGUI>();
-        turnText.alignment = TextAlignmentOptions.TopRight;
-        turnText.fontSize = 28f;
-        turnText.fontStyle = FontStyles.Bold;
-        turnText.color = Color.white;
-        turnText.raycastTarget = false;
-        turnText.enableWordWrapping = false;
+        int safeIndex = Mathf.Clamp(currentPlayerIndex.Value,0, players.Count - 1);  //playerの人数の制限(範囲:最小0,最大player-1)
+        string currentName = players[safeIndex].playerName.ToString();                //現在のターンのplayerの名前
+        string localTurnLine = NetworkManager.Singleton != null &&                    //ネットワークマネージャーが存在する場合
+                           players[safeIndex].clientId == NetworkManager.Singleton.LocalClientId
+        ? "あなたの番です"
+        : "待機中";
     }
 
+    //現在のターンのプレイヤーかどうかを判定する
     private bool IsCurrentTurnIndex(int playerIndex)
     {
         return players.Count > 0 && playerIndex == Mathf.Clamp(currentPlayerIndex.Value, 0, players.Count - 1);
     }
 
+    //ローカルプレイヤーのターンかどうかを判定する
     public bool IsLocalPlayerTurn()
     {
         if (NetworkManager.Singleton == null || players.Count == 0)
@@ -826,6 +902,7 @@ public class BoardManager : NetworkBehaviour
         return players[safeIndex].clientId == NetworkManager.Singleton.LocalClientId;
     }
 
+    //カードの操作可能状態を設定する
     private void SetCardInteractivity(CardView card, bool isInteractable)
     {
         CanvasGroup canvasGroup = card.GetComponent<CanvasGroup>();
@@ -834,9 +911,9 @@ public class BoardManager : NetworkBehaviour
             canvasGroup = card.gameObject.AddComponent<CanvasGroup>();
         }
 
-        canvasGroup.alpha = isInteractable ? 1f : 0.55f;
-        canvasGroup.interactable = isInteractable;
-        canvasGroup.blocksRaycasts = isInteractable;
+       
+        canvasGroup.interactable = isInteractable;   //入力システムの無効化
+        canvasGroup.blocksRaycasts = isInteractable; //マウスの判定の無効化
     }
 
     public static bool IsActionCard(CardType cardType)
@@ -866,11 +943,12 @@ public class BoardManager : NetworkBehaviour
         return cardType != CardType.Start && !IsActionCard(cardType);
     }
 
+    //カードが盤面に置かれたらビューを更新する
     private void OnPlacedCardsChanged(NetworkListEvent<CardState> changeEvent)
     {
         if (changeEvent.Type == NetworkListEvent<CardState>.EventType.Add)
         {
-            SpawnCardView(changeEvent.Value);
+            SpawnCardView(changeEvent.Value);//新しいカードのビューを生成
             return;
         }
 
@@ -894,7 +972,7 @@ public class BoardManager : NetworkBehaviour
             SpawnCardView(placedCards[i]);
         }
     }
-
+    //カードの表示を生成する
     private void SpawnCardView(CardState state)
     {
         if (boardRoot == null || cardPrefab == null)
@@ -923,6 +1001,7 @@ public class BoardManager : NetworkBehaviour
         spawnedCards.Add(position, cardView);
     }
 
+    //ネットワーク終了時のイベント解除
     public override void OnNetworkDespawn()
     {
         placedCards.OnListChanged -= OnPlacedCardsChanged;
