@@ -16,6 +16,11 @@ public class PlayerDisplay : NetworkBehaviour
 
     public void UpdateName(string playerName)
     {
+        UpdateName(playerName, false);
+    }
+
+    public void UpdateName(string playerName, bool isCurrentTurn)
+    {
         if (nameText == null)
         {
             nameText = GetComponent<TMP_Text>();
@@ -23,7 +28,10 @@ public class PlayerDisplay : NetworkBehaviour
 
         if (nameText != null)
         {
-            nameText.text = playerName;
+            nameText.richText = true;
+            nameText.text = isCurrentTurn
+                ? $"<color=#FFD54A>▶ {playerName} のターン</color>"
+                : playerName;
         }
     }
 }

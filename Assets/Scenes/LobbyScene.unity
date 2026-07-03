@@ -936,7 +936,6 @@ MonoBehaviour:
     Prefabs:
       NetworkPrefabsLists:
       - {fileID: 11400000, guid: 8c25284d83b5aaf42a3a730404a830e1, type: 2}
-      - {fileID: 11400000, guid: 654821321650ad94aa2c3c611ece88ba, type: 2}
     TickRate: 30
     ClientConnectionBufferTimeout: 10
     ConnectionApproval: 0
@@ -4315,6 +4314,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 53389947934463237, guid: cbc1cc53c8c3d6c4d978f8f21a481740, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 53389947934463237, guid: cbc1cc53c8c3d6c4d978f8f21a481740, type: 3}
       propertyPath: GlobalObjectIdHash
       value: 2540499861
