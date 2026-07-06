@@ -14,6 +14,8 @@ public class BoardManager : NetworkBehaviour
 {
     [Header("Start Settings")]
     [SerializeField] private Transform startCardRoot;  // Startカード専用の表示場所
+    [SerializeField] private int startCardX = 1;
+    [SerializeField] private int startCardY = 3;
 
     // --- インスペクター設定エリア ---
     [Header("Board View")]
@@ -61,6 +63,7 @@ public class BoardManager : NetworkBehaviour
     private readonly Dictionary<Vector2Int, CardView> spawnedCards = new Dictionary<Vector2Int, CardView>();
     private readonly List<PlayerDisplay> spawnedPlayerDisplays = new List<PlayerDisplay>();
     private readonly List<CardView> spawnedHandCards = new List<CardView>();
+    private readonly List<CellComponent> cachedBoardCells = new List<CellComponent>();
     private readonly List<CardType> deck = new List<CardType>(); // サーバーのみが保持する山札リスト
 
     // --- 同期変数 ---
@@ -70,6 +73,9 @@ public class BoardManager : NetworkBehaviour
     public List<CardDistribution> deckComposition;
     private Transform handRoot;
     private bool playerListPrepared;
+    private bool placementHighlightsVisible;
+    private CardType highlightedCardType;
+    private bool highlightedCardRotated;
     public static BoardManager Instance;
 
     private void Awake()
@@ -106,9 +112,7 @@ public class BoardManager : NetworkBehaviour
         // サーバーのみ：盤面の初期カードと山札の生成
         if (IsServer && placedCards.Count == 0)
         {
-            int startX = Mathf.RoundToInt(startCardRoot.localPosition.x);
-            int startY = Mathf.RoundToInt(startCardRoot.localPosition.y);
-            placedCards.Add(new CardState(startX, startY, CardType.Start, false, NetworkManager.ServerClientId));
+            placedCards.Add(new CardState(startCardX, startCardY, CardType.Start, false, NetworkManager.ServerClientId));
             BuildAndShuffleDeck();
         }
 
@@ -412,7 +416,6 @@ public class BoardManager : NetworkBehaviour
 
         // 全ての描画先をリセット
         ClearContainer(handRoot); // EnsureHandRootで初期化される想定
-        ClearContainer(startCardRoot);
 
         // 手札UIリストをクリア
         foreach (CardView card in spawnedHandCards)
@@ -433,16 +436,13 @@ public class BoardManager : NetworkBehaviour
 
         for (int i = 0; i < dealtCards.Count; i++)
         {
-            // 自分以外のカードはスキップ
-            if (dealtCards[i].ownerClientId != localClientId)
+            // 自分以外のカードと、盤面用のStartカードはスキップ
+            if (dealtCards[i].ownerClientId != localClientId || dealtCards[i].cardType == CardType.Start)
             {
                 continue;
             }
 
-            // tartカードなら startCardRoot、それ以外なら handRoot を選ぶ
-            Transform parentContainer = (dealtCards[i].cardType == CardType.Start)
-                                        ? startCardRoot
-                                        : handRoot;
+            Transform parentContainer = handRoot;
 
             // 指定したコンテナを親にして生成
             CardView card = Instantiate(cardPrefab, parentContainer);
@@ -520,19 +520,53 @@ public class BoardManager : NetworkBehaviour
     public void ShowPlacementHighlights(CardType cardType, bool rotated)
     {
         Debug.Log($"[Debug] ハイライト処理開始: {cardType}");
-        foreach (CellComponent cell in FindObjectsOfType<CellComponent>())
+        placementHighlightsVisible = true;
+        highlightedCardType = cardType;
+        highlightedCardRotated = rotated;
+        RefreshPlacementHighlights();
+    }
+
+    private void RefreshPlacementHighlights()
+    {
+        bool shouldShow = placementHighlightsVisible
+            && IsLocalPlayerTurn()
+            && IsTerrainCard(highlightedCardType);
+
+        int highlightedCount = 0;
+        List<CellComponent> cells = GetBoardCells();
+        foreach (CellComponent cell in cells)
         {
-            bool canPlace = CanPlaceCardFromUI(cell.x, cell.y, cardType, rotated);
+            bool canPlace = shouldShow
+                && CanPlaceCardFromUI(cell.x, cell.y, highlightedCardType, highlightedCardRotated);
+            if (canPlace)
+            {
+                highlightedCount++;
+            }
+
             cell.SetPlacementHighlight(canPlace);
         }
+
+        Debug.Log($"[Debug] Highlight cells: {highlightedCount}/{cells.Count}, card: {highlightedCardType}");
     }
 
     public void ClearPlacementHighlights()
     {
-        foreach (CellComponent cell in FindObjectsOfType<CellComponent>())
+        placementHighlightsVisible = false;
+        foreach (CellComponent cell in GetBoardCells())
         {
             cell.SetPlacementHighlight(false);
         }
+    }
+
+    private List<CellComponent> GetBoardCells()
+    {
+        cachedBoardCells.RemoveAll(cell => cell == null);
+        if (cachedBoardCells.Count == 0)
+        {
+            cachedBoardCells.AddRange(FindObjectsOfType<CellComponent>());
+        }
+
+        return cachedBoardCells;
     }
 
     public void TryPlayActionCardFromUI(CardType cardType)
@@ -871,6 +905,7 @@ public class BoardManager : NetworkBehaviour
         RefreshPlayerList();
         RefreshLocalHand();
         RefreshTurnUI();
+        RefreshPlacementHighlights();
     }
 
     //ますにかーどがあるかどうかを確認する
@@ -996,10 +1031,12 @@ public class BoardManager : NetworkBehaviour
         if (changeEvent.Type == NetworkListEvent<CardState>.EventType.Add)
         {
             SpawnCardView(changeEvent.Value);//新しいカードのビューを生成
+            RefreshPlacementHighlights();
             return;
         }
 
         RebuildBoardView();
+        RefreshPlacementHighlights();
     }
 
     private void RebuildBoardView()
@@ -1033,15 +1070,23 @@ public class BoardManager : NetworkBehaviour
             return;
         }
 
-        CardView cardView = Instantiate(cardPrefab, boardRoot);
+        Transform parent = state.cardType == CardType.Start && startCardRoot != null
+            ? startCardRoot
+            : boardRoot;
+
+        CardView cardView = Instantiate(cardPrefab, parent);
         RectTransform rectTransform = cardView.GetComponent<RectTransform>();
         if (rectTransform != null)
         {
-            rectTransform.anchoredPosition = new Vector2(state.x * cellSize, state.y * cellSize);
+            rectTransform.anchoredPosition = state.cardType == CardType.Start
+                ? Vector2.zero
+                : new Vector2(state.x * cellSize, state.y * cellSize);
         }
         else
         {
-            cardView.transform.localPosition = new Vector3(state.x * cellSize, state.y * cellSize, 0f);
+            cardView.transform.localPosition = state.cardType == CardType.Start
+                ? Vector3.zero
+                : new Vector3(state.x * cellSize, state.y * cellSize, 0f);
         }
 
         cardView.SetCard(state.cardType);
