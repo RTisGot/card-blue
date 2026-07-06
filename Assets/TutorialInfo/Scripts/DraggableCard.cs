@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
+using Unity.Netcode;
 
 public class DraggableCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler, IPointerClickHandler
 {
@@ -18,6 +19,9 @@ public class DraggableCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
 
     public void OnBeginDrag(PointerEventData eventData)
     {
+        CanvasGroup cg = GetOrAddCanvasGroup();
+        cg.blocksRaycasts = false;
+
         if (!CanUseCard())
         {
             return;
@@ -31,13 +35,26 @@ public class DraggableCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
             anchoredPositionBeforeDrag = rectTransform.anchoredPosition;
         }
 
-        transform.SetParent(transform.root);
+        
         GetOrAddCanvasGroup().blocksRaycasts = false;
         isDragging = true;
 
         if (BoardManager.Instance != null && !BoardManager.IsActionCard(GetCardType()))
         {
+            Debug.Log("ハイライトを呼び出します");
             BoardManager.Instance.ShowPlacementHighlights(GetCardType(), false);
+        }
+    }
+
+    [ServerRpc(RequireOwnership = false)]
+    private void RequestReparentServerRpc(NetworkObjectReference parentRef)
+    {
+        if (parentRef.TryGet(out NetworkObject parentObj))
+        {
+            //親子関係を設定(networkobject)
+            GetComponent<NetworkObject>().TrySetParent(parentObj.transform);
+
+            ResetPositionClientRpc(); // クライアント側で位置をリセット
         }
     }
 
@@ -51,33 +68,38 @@ public class DraggableCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
         transform.position = eventData.position;
     }
 
+    //カードのドロップ処理
     public void OnEndDrag(PointerEventData eventData)
     {
-        if (!isDragging)
-        {
-            return;
-        }
+        if (!isDragging) return;
 
         isDragging = false;
-        ReturnToHand();
-        GetOrAddCanvasGroup().blocksRaycasts = true;
-        BoardManager.Instance?.ClearPlacementHighlights();
+       
 
+        //セル上にドロップされたか確認
         if (eventData.pointerEnter != null &&
             eventData.pointerEnter.CompareTag("BoardCell") &&
-            eventData.pointerEnter.TryGetComponent(out CellComponent cell) &&
-            BoardManager.Instance != null &&
-            BoardManager.Instance.CanPlaceCardFromUI(cell.x, cell.y, GetCardType(), false))
+            eventData.pointerEnter.TryGetComponent(out CellComponent cell))
         {
-            BoardManager.Instance.TryPlaceCardFromUI(
-                cell.x,
-                cell.y,
-                GetCardType(),
-                false
-            );
-        }
-    }
+            //サーバーへ「配置したい」という依頼を投げる
+            BoardManager.Instance.TryPlaceCardFromUI(cell.x, cell.y, GetCardType(), false);
 
+            Debug.Log($"[Client] ドロップしました: {cell.x}, {cell.y}");
+            // 成功した前提で、クライアント側では手札から消す処理
+            return;
+        }
+        GetOrAddCanvasGroup().blocksRaycasts = true;
+        BoardManager.Instance?.ClearPlacementHighlights();
+        // セル以外にドロップされたら手札に戻す
+        ReturnToHand();
+    }
+    [ServerRpc(RequireOwnership = false)]
+    public void PlaceCardServerRpc(int x, int y, CardType cardType, bool rotated)
+    {
+        // ここで BoardManager に配置処理を依頼する
+        // BoardManager に「サーバー側での配置」を依頼するメソッドを別途作る必要があります
+        BoardManager.Instance.ExecutePlacementOnServer(x, y, cardType, rotated);
+    }
     public void OnPointerClick(PointerEventData eventData)
     {
         if (!CanUseCard())
@@ -137,5 +159,14 @@ public class DraggableCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
         }
 
         return canvasGroup;
+    }
+
+    // 配置確定時にマスの中心にぴったり合わせる
+    [ClientRpc]
+    private void ResetPositionClientRpc()
+    {
+        // 配置確定時にマスの中心にぴったり合わせる
+        transform.localPosition = Vector3.zero;
+        transform.localScale = Vector3.one; // マスの大きさに合わせる
     }
 }

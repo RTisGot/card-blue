@@ -402,6 +402,7 @@ public class BoardManager : NetworkBehaviour
         RefreshLocalHand();
     }
 
+
     private void RefreshLocalHand()
     {
         if (cardPrefab == null || NetworkManager.Singleton == null)
@@ -409,18 +410,18 @@ public class BoardManager : NetworkBehaviour
             return;
         }
 
-        // 1. 全ての描画先をリセット
+        // 全ての描画先をリセット
         ClearContainer(handRoot); // EnsureHandRootで初期化される想定
         ClearContainer(startCardRoot);
 
-        // 2. 手札UIリストをクリア
+        // 手札UIリストをクリア
         foreach (CardView card in spawnedHandCards)
         {
             if (card != null) Destroy(card.gameObject);
         }
         spawnedHandCards.Clear();
 
-        // 3. 必要な親ルートの確保
+        //必要な親ルートの確保
         EnsureHandRoot();
         if (handRoot == null) return;
 
@@ -501,15 +502,11 @@ public class BoardManager : NetworkBehaviour
         Debug.Log("Local hand UI instantiated and parented to Canvas");
     }
 
-    // Card placement.
-    public void TryPlaceCardFromUI(int x, int y)
-    {
-        RequestPlaceCardServerRpc(x, y, CardType.PathStraight, false);
-    }
 
-    public void TryPlaceCardFromUI(int x, int y, CardType cardType, bool rotated)
+    public void TryPlaceCardFromUI(int x, int y, CardType cardtype, bool rotated)
     {
-        RequestPlaceCardServerRpc(x, y, cardType, rotated);
+        // クライアントが勝手に動かすのではなく、サーバーに処理を依頼する
+        RequestPlaceCardServerRpc(x, y, cardtype, rotated);
     }
 
     public bool CanPlaceCardFromUI(int x, int y, CardType cardType, bool rotated)
@@ -522,6 +519,7 @@ public class BoardManager : NetworkBehaviour
     //おける場所のハイライト表示
     public void ShowPlacementHighlights(CardType cardType, bool rotated)
     {
+        Debug.Log($"[Debug] ハイライト処理開始: {cardType}");
         foreach (CellComponent cell in FindObjectsOfType<CellComponent>())
         {
             bool canPlace = CanPlaceCardFromUI(cell.x, cell.y, cardType, rotated);
@@ -575,7 +573,38 @@ public class BoardManager : NetworkBehaviour
         DrawCard(senderClientId);
         AdvanceTurn();
     }
+    public void ExecutePlacementOnServer(int x, int y, CardType cardType, bool rotated)
+    {
+        // 配置場所のセルを取得
+        CellComponent cell = GetCellAt(x, y); // 座標からCellを取得するメソッド(既存のもの)
 
+        if (cell == null || !IsCellEmpty(x, y)) return;
+
+        // カードのプレハブからインスタンスを生成してスポーンする
+        GameObject cardInstance = Instantiate(cardPrefab).gameObject;
+        NetworkObject netObj = cardInstance.GetComponent<NetworkObject>();
+
+        // サーバー上でスポーンさせる
+        netObj.Spawn();
+
+        //親子関係を設定
+        netObj.TrySetParent(cell.transform);
+
+        // クライアント側の見た目を整える
+        // 配置完了を全員に通知するClientRpc
+        UpdateCardVisualClientRpc(netObj.NetworkObjectId, x, y);
+    }
+
+    [ClientRpc]
+    private void UpdateCardVisualClientRpc(ulong networkObjectId, int x, int y)
+    {
+        // 必要に応じて、スポーンしたカードのローカル位置をリセット
+        if (NetworkManager.Singleton.SpawnManager.SpawnedObjects.TryGetValue(networkObjectId, out NetworkObject netObj))
+        {
+            netObj.transform.localPosition = Vector3.zero;
+            netObj.transform.localScale = Vector3.one;
+        }
+    }
     //アクションカードをプレイする処理
     [ServerRpc(RequireOwnership = false)]
     private void RequestPlayActionCardServerRpc(CardType cardType, ServerRpcParams rpcParams = default)
@@ -590,8 +619,21 @@ public class BoardManager : NetworkBehaviour
         DrawCard(senderClientId);
         AdvanceTurn();
     }
+    private CellComponent GetCellAt(int x, int y)
+    {
+        // 盤面上のすべてのCellComponentを探して、座標が一致するものを返す
+        // すでに scene 内に CellComponent が配置されている前提です
+        foreach (var cell in FindObjectsOfType<CellComponent>())
+        {
+            if (cell.x == x && cell.y == y) // もし CellComponent に x, y というプロパティがあれば
+            {
+                return cell;
+            }
+        }
+        return null;
+    }
 
-    [ServerRpc(RequireOwnership = false)]
+        [ServerRpc(RequireOwnership = false)]
     private void RequestDiscardAndDrawServerRpc(CardType cardType, ServerRpcParams rpcParams = default)
     {
         ulong senderClientId = rpcParams.Receive.SenderClientId;
@@ -831,7 +873,12 @@ public class BoardManager : NetworkBehaviour
         RefreshTurnUI();
     }
 
-
+    //ますにかーどがあるかどうかを確認する
+    private bool IsCellEmpty(int x, int y)
+    {
+       
+        return !HasCardAt(new Vector2Int(x, y));
+    }
     private void RefreshTurnUI()
     {
         if (turnText == null) return;

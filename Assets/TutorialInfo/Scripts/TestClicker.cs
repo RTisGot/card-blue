@@ -23,9 +23,11 @@ public class TestClicker : NetworkBehaviour
     {
         int x = ParseInput(xInput, 1);
         int y = ParseInput(yInput, 0);
+        CardType cardType = CardType.LRdeadend;
+        bool rotated = false;
         if (boardManager != null)
         {
-            boardManager.TryPlaceCardFromUI(x, y);
+            boardManager.TryPlaceCardFromUI(x, y,cardType, rotated);
         }
     }
     private static int ParseInput(TMP_InputField inputField, int fallback)
