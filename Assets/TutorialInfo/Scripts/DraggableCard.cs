@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using Unity.Netcode;
@@ -12,6 +13,7 @@ public class DraggableCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
     private bool isDragging;
     private int siblingIndexBeforeDrag;
     private Vector2 anchoredPositionBeforeDrag;
+    private static DraggableCard pendingPlacementCard;
 
     private void Awake()
     {
@@ -21,13 +23,12 @@ public class DraggableCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
 
     public void OnBeginDrag(PointerEventData eventData)
     {
-        CanvasGroup cg = GetOrAddCanvasGroup();
-        cg.blocksRaycasts = false;
-
         if (!CanUseCard())
         {
             return;
         }
+
+        pendingPlacementCard = null;
 
         // Move the dragged card to the top-level canvas while dragging.
         parentAfterDrag = transform.parent;
@@ -44,7 +45,7 @@ public class DraggableCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
         if (BoardManager.Instance != null && !BoardManager.IsActionCard(GetCardType()))
         {
             Debug.Log("ハイライトを呼び出します");
-            BoardManager.Instance.ShowPlacementHighlights(GetCardType(), false);
+            BoardManager.Instance.ShowPlacementHighlights(GetCardType(), isRotated);
         }
     }
 
@@ -68,16 +69,22 @@ public class DraggableCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
         }
 
         transform.position = eventData.position;
+
+        if (BoardManager.Instance != null && !BoardManager.IsActionCard(GetCardType()))
+        {
+            BoardManager.Instance.UpdatePlacementHighlights(GetCardType(), isRotated);
+        }
     }
 
     //カードのドロップ処理
     public void OnEndDrag(PointerEventData eventData)
     {
         Debug.Log("[Log] OnEndDrag が呼ばれました");
-        if (eventData.pointerCurrentRaycast.gameObject != null)
+        GameObject raycastObject = GetRaycastObjectAtPointer(eventData);
+        if (raycastObject != null)
         {
-            Debug.Log($"[Debug] 今当たっているオブジェクト: {eventData.pointerCurrentRaycast.gameObject.name}");
-            Debug.Log($"[Debug] 当たったオブジェクトのTag: {eventData.pointerCurrentRaycast.gameObject.tag}");
+            Debug.Log($"[Debug] 今当たっているオブジェクト: {raycastObject.name}");
+            Debug.Log($"[Debug] 当たったオブジェクトのTag: {raycastObject.tag}");
         }
         else
         {
@@ -88,11 +95,7 @@ public class DraggableCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
 
         // 1. ドロップ先の CellComponent を安全に取得
         // (Raycastで当たったオブジェクトから取得を試みる)
-        CellComponent cell = null;
-        if (eventData.pointerCurrentRaycast.isValid)
-        {
-            cell = eventData.pointerCurrentRaycast.gameObject.GetComponent<CellComponent>();
-        }
+        CellComponent cell = GetCellAtPointer(eventData);
 
         // 2. セル上にドロップできたか判定
         if (cell != null)
@@ -100,10 +103,18 @@ public class DraggableCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
             Debug.Log($"[Client] ドロップ成功: {cell.x}, {cell.y}");
 
             // サーバーへの依頼 (BoardManager.Instance を使用)
-            BoardManager.Instance.TryPlaceCardFromUI(cell.x, cell.y, GetCardType(), this.isRotated);
+            bool placeRequested = BoardManager.Instance.TryPlaceCardFromUI(cell.x, cell.y, GetCardType(), this.isRotated);
 
             // 配置のハイライトを消す
             BoardManager.Instance.ClearPlacementHighlights();
+            if (placeRequested)
+            {
+                pendingPlacementCard = this;
+                return;
+            }
+
+            Debug.Log("[Log] 配置できないセルです。手札に戻します。");
+            ReturnToHand();
             return;
         }
 
@@ -111,6 +122,82 @@ public class DraggableCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
         Debug.Log("[Log] セル以外にドロップされました。手札に戻します。");
         BoardManager.Instance?.ClearPlacementHighlights();
         ReturnToHand();
+    }
+
+
+    private GameObject GetRaycastObjectAtPointer(PointerEventData eventData)
+    {
+        if (eventData.pointerCurrentRaycast.gameObject != null)
+        {
+            return eventData.pointerCurrentRaycast.gameObject;
+        }
+
+        RaycastResult result = GetFirstRaycastResultAtPointer(eventData);
+        return result.gameObject;
+    }
+
+    private CellComponent GetCellAtPointer(PointerEventData eventData)
+    {
+        foreach (RaycastResult result in GetRaycastResultsAtPointer(eventData))
+        {
+            if (result.gameObject == gameObject || result.gameObject.transform.IsChildOf(transform))
+            {
+                continue;
+            }
+
+            CellComponent raycastCell = result.gameObject.GetComponentInParent<CellComponent>();
+            if (raycastCell != null)
+            {
+                return raycastCell;
+            }
+        }
+
+        foreach (CellComponent cell in FindObjectsOfType<CellComponent>())
+        {
+            RectTransform cellRect = cell.GetComponent<RectTransform>();
+            if (cellRect != null &&
+                RectTransformUtility.RectangleContainsScreenPoint(
+                    cellRect,
+                    eventData.position,
+                    eventData.pressEventCamera))
+            {
+                return cell;
+            }
+        }
+
+        return null;
+    }
+
+    private RaycastResult GetFirstRaycastResultAtPointer(PointerEventData eventData)
+    {
+        if (EventSystem.current == null)
+        {
+            return default;
+        }
+
+        List<RaycastResult> results = GetRaycastResultsAtPointer(eventData);
+
+        foreach (RaycastResult result in results)
+        {
+            if (result.gameObject != gameObject &&
+                !result.gameObject.transform.IsChildOf(transform))
+            {
+                return result;
+            }
+        }
+
+        return default;
+    }
+
+    private List<RaycastResult> GetRaycastResultsAtPointer(PointerEventData eventData)
+    {
+        List<RaycastResult> results = new List<RaycastResult>();
+        if (EventSystem.current != null)
+        {
+            EventSystem.current.RaycastAll(eventData, results);
+        }
+
+        return results;
     }
 
     [ServerRpc(RequireOwnership = false)]
@@ -156,6 +243,11 @@ public class DraggableCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
 
     private void ReturnToHand()
     {
+        if (pendingPlacementCard == this)
+        {
+            pendingPlacementCard = null;
+        }
+
         if (parentAfterDrag == null)
         {
             return;
@@ -170,6 +262,17 @@ public class DraggableCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
         }
     }
 
+
+    public static void ReturnPendingPlacementToHand()
+    {
+        if (pendingPlacementCard == null)
+        {
+            return;
+        }
+
+        pendingPlacementCard.ReturnToHand();
+        pendingPlacementCard = null;
+    }
     private CanvasGroup GetOrAddCanvasGroup()
     {
         CanvasGroup canvasGroup = GetComponent<CanvasGroup>();
