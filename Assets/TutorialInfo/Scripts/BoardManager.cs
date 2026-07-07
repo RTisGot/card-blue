@@ -132,6 +132,7 @@ public class BoardManager : NetworkBehaviour
         RefreshPlayerList();
         RefreshLocalHand();
         RefreshTurnUI();
+        RefreshPlacementHighlights();
     }
 
     // --- プレイヤー管理ロジック ---
@@ -342,6 +343,7 @@ public class BoardManager : NetworkBehaviour
     {
         RefreshPlayerList();
         RefreshTurnUI();
+        RefreshPlacementHighlights();
     }
 
     private void RefreshPlayerList()
@@ -528,26 +530,37 @@ public class BoardManager : NetworkBehaviour
 
     private void RefreshPlacementHighlights()
     {
-        bool shouldShow = placementHighlightsVisible
-            && IsLocalPlayerTurn()
-            && IsTerrainCard(highlightedCardType);
+         bool shouldShow = placementHighlightsVisible
+             && IsLocalPlayerTurn()
+             && IsTerrainCard(highlightedCardType);
 
-        int highlightedCount = 0;
-        List<CellComponent> cells = GetBoardCells();
+         int highlightedCount = 0;
+         List<CellComponent> cells = GetBoardCells();
+        /* foreach (CellComponent cell in cells)
+         {
+             bool canPlace = shouldShow
+                 && CanPlaceCardFromUI(cell.x, cell.y, highlightedCardType, highlightedCardRotated);
+             if (canPlace)
+             {
+                 highlightedCount++;
+             }
+
+             cell.SetPlacementHighlight(canPlace);
+         }*/
+        
         foreach (CellComponent cell in cells)
         {
-            bool canPlace = shouldShow
-                && CanPlaceCardFromUI(cell.x, cell.y, highlightedCardType, highlightedCardRotated);
-            if (canPlace)
-            {
-                highlightedCount++;
-            }
+            // ここで座標を渡して、「本当に置けるか」を判定
+            bool canPlace = shouldShow && CanPlaceCard(new Vector2Int(cell.x, cell.y), highlightedCardType, highlightedCardRotated);
 
+            if (canPlace) Debug.Log($"[Success] 置ける場所発見: ({cell.x}, {cell.y})");
+            // ここで光らせる
             cell.SetPlacementHighlight(canPlace);
         }
 
         Debug.Log($"[Debug] Highlight cells: {highlightedCount}/{cells.Count}, card: {highlightedCardType}");
     }
+
 
     public void ClearPlacementHighlights()
     {
@@ -583,19 +596,26 @@ public class BoardManager : NetworkBehaviour
     [ServerRpc(RequireOwnership = false)]
     private void RequestPlaceCardServerRpc(int x, int y, CardType cardType, bool rotated, ServerRpcParams rpcParams = default)
     {
+
         ulong senderClientId = rpcParams.Receive.SenderClientId;
         if (!CanAct(senderClientId) || !IsTerrainCard(cardType) || !HasCardInHand(senderClientId, cardType))
         {
+            // どの条件で失敗したか特定するログに書き換える
+            Debug.Log($"配置失敗: CanAct={CanAct(senderClientId)}, IsTerrain={IsTerrainCard(cardType)}, HasCard={HasCardInHand(senderClientId, cardType)}");
             return;
         }
+        
+        
 
+       
         Vector2Int position = new Vector2Int(x, y);
 
         if (!CanPlaceCard(position, cardType, rotated))
         {
+            Debug.Log("配置失敗: 地形カードではない");
             return;
         }
-
+       
         RemoveCardFromHand(senderClientId, cardType); //手札からカードを削除
         //盤面にカードを追加
         placedCards.Add(new CardState(
@@ -643,6 +663,7 @@ public class BoardManager : NetworkBehaviour
     [ServerRpc(RequireOwnership = false)]
     private void RequestPlayActionCardServerRpc(CardType cardType, ServerRpcParams rpcParams = default)
     {
+
         ulong senderClientId = rpcParams.Receive.SenderClientId;
         if (!CanAct(senderClientId) || !IsActionCard(cardType) || !HasCardInHand(senderClientId, cardType))
         {
@@ -684,9 +705,22 @@ public class BoardManager : NetworkBehaviour
     //指定された位置にカードを置けるかを確認する
     private bool CanPlaceCard(Vector2Int position, CardType cardType, bool rotated)
     {
-       
+        Debug.Log($"[CheckPos] 配置しようとしている座標: ({position.x}, {position.y})");
+
+        // 現在の盤面リストの中身をすべて表示
+        foreach (var card in placedCards)
+        {
+            Debug.Log($"[CheckList] 盤面にあるカード: Type={card.cardType}, Pos=({card.x}, {card.y})");
+        }
+        if (placedCards.Count == 0)
+        {
+            Debug.Log("[PlacementTest] 初手配置許可");
+            return true;
+        }
+
         if (HasCardAt(position)) //カードが置かれているか
         {
+            Debug.Log("失敗: 既にカードがあります");
             return false;
         }
 
@@ -696,22 +730,28 @@ public class BoardManager : NetworkBehaviour
                         || HasCardAt(position + Vector2Int.left)
                         || HasCardAt(position + Vector2Int.right);
 
-        if (!hasNeighbor) return false;
+        if (!hasNeighbor) { Debug.Log("失敗: 隣接するカードがありません"); return false; }
 
-        return CardRules.CanPlaceCard(position, cardType, rotated, placedCards)
-            && ConnectsToStart(position, cardType, rotated);
+        // ここで詳細に分ける
+        bool ruleOk = CardRules.CanPlaceCard(position, cardType, rotated, placedCards);
+        bool connectOk = ConnectsToStart(position, cardType, rotated);
+
+        if (!ruleOk) { Debug.Log("失敗: 道路の接続ルールに違反しています"); return false; }
+
+        return true;
+        /*return CardRules.CanPlaceCard(position, cardType, rotated, placedCards)
+            && ConnectsToStart(position, cardType, rotated);*/
     }
 
     private bool HasCardAt(Vector2Int position)
     {
-        for (int i = 0; i < placedCards.Count; i++)
+        foreach (var card in placedCards)
         {
-            if (placedCards[i].x == position.x && placedCards[i].y == position.y)
+            if (card.x == position.x && card.y == position.y)
             {
                 return true;
             }
         }
-
         return false;
     }
 
@@ -1020,10 +1060,21 @@ public class BoardManager : NetworkBehaviour
         }
     }
 
-    private static bool IsTerrainCard(CardType cardType)
+    private bool IsTerrainCard(CardType cardType)
     {
-        return cardType != CardType.Start && !IsActionCard(cardType);
+        // Startも地形カードに含める
+        if (cardType == CardType.Start) return true;
+
+        // "Action" で始まる名前（ActionRepairなど）以外をすべて許可する
+        string name = cardType.ToString();
+        bool isAction = name.StartsWith("Action");
+
+        // デバッグログを追加して判定を可視化する
+        Debug.Log($"[Check] Card: {cardType}, IsAction: {isAction}");
+
+        return !isAction;
     }
+
 
     //カードが盤面に置かれたらビューを更新する
     private void OnPlacedCardsChanged(NetworkListEvent<CardState> changeEvent)

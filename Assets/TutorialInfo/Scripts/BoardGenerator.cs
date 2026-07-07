@@ -26,6 +26,8 @@ public class BoardGenerator : MonoBehaviour
                 GameObject cell = Instantiate(cellPrefab, transform);
                 cell.name = $"Cell_{x}_{y}";
 
+                cell.tag = "BoardCell";
+
                 // 座標情報をセット
                 CellComponent comp = cell.GetComponent<CellComponent>();
                 comp.x = x;

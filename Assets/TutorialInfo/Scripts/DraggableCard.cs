@@ -4,6 +4,8 @@ using Unity.Netcode;
 
 public class DraggableCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler, IPointerClickHandler
 {
+    public CardType cardType;
+    public bool isRotated;
     private Transform parentAfterDrag;
     private CardView cardView;
     private RectTransform rectTransform;
@@ -71,28 +73,46 @@ public class DraggableCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
     //カードのドロップ処理
     public void OnEndDrag(PointerEventData eventData)
     {
-        if (!isDragging) return;
-
-        isDragging = false;
-       
-
-        //セル上にドロップされたか確認
-        if (eventData.pointerEnter != null &&
-            eventData.pointerEnter.CompareTag("BoardCell") &&
-            eventData.pointerEnter.TryGetComponent(out CellComponent cell))
+        Debug.Log("[Log] OnEndDrag が呼ばれました");
+        if (eventData.pointerCurrentRaycast.gameObject != null)
         {
-            //サーバーへ「配置したい」という依頼を投げる
-            BoardManager.Instance.TryPlaceCardFromUI(cell.x, cell.y, GetCardType(), false);
+            Debug.Log($"[Debug] 今当たっているオブジェクト: {eventData.pointerCurrentRaycast.gameObject.name}");
+            Debug.Log($"[Debug] 当たったオブジェクトのTag: {eventData.pointerCurrentRaycast.gameObject.tag}");
+        }
+        else
+        {
+            Debug.Log("[Debug] 何にも当たっていません");
+        }
+        isDragging = false;
+        GetOrAddCanvasGroup().blocksRaycasts = true;
 
-            Debug.Log($"[Client] ドロップしました: {cell.x}, {cell.y}");
-            // 成功した前提で、クライアント側では手札から消す処理
+        // 1. ドロップ先の CellComponent を安全に取得
+        // (Raycastで当たったオブジェクトから取得を試みる)
+        CellComponent cell = null;
+        if (eventData.pointerCurrentRaycast.isValid)
+        {
+            cell = eventData.pointerCurrentRaycast.gameObject.GetComponent<CellComponent>();
+        }
+
+        // 2. セル上にドロップできたか判定
+        if (cell != null)
+        {
+            Debug.Log($"[Client] ドロップ成功: {cell.x}, {cell.y}");
+
+            // サーバーへの依頼 (BoardManager.Instance を使用)
+            BoardManager.Instance.TryPlaceCardFromUI(cell.x, cell.y, GetCardType(), this.isRotated);
+
+            // 配置のハイライトを消す
+            BoardManager.Instance.ClearPlacementHighlights();
             return;
         }
-        GetOrAddCanvasGroup().blocksRaycasts = true;
+
+        // 3. セル以外（手札など）にドロップされた場合
+        Debug.Log("[Log] セル以外にドロップされました。手札に戻します。");
         BoardManager.Instance?.ClearPlacementHighlights();
-        // セル以外にドロップされたら手札に戻す
         ReturnToHand();
     }
+
     [ServerRpc(RequireOwnership = false)]
     public void PlaceCardServerRpc(int x, int y, CardType cardType, bool rotated)
     {
