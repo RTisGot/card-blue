@@ -22,15 +22,15 @@ public class CellComponent : MonoBehaviour
         CacheComponents();
         EnsureHighlightOverlay();
 
+        if (image != null)
+        {
+            image.color = highlighted
+                ? new Color(1f, 0.88f, 0.12f, 0.8f)
+                : defaultColor;
+        }
+
         if (highlightRect == null)
         {
-            if (image != null)
-            {
-                image.color = highlighted
-                    ? new Color(1f, 0.88f, 0.12f, 0.8f)
-                    : defaultColor;
-            }
-
             return;
         }
 
@@ -67,14 +67,13 @@ public class CellComponent : MonoBehaviour
             return;
         }
 
-        Canvas canvas = GetComponentInParent<Canvas>();
-        if (canvas == null)
+        if (rectTransform == null)
         {
             return;
         }
 
         GameObject highlightObject = new GameObject($"PlacementHighlight_{x}_{y}");
-        highlightObject.transform.SetParent(canvas.transform, false);
+        highlightObject.transform.SetParent(transform, false);
         highlightObject.layer = gameObject.layer;
 
         highlightRect = highlightObject.AddComponent<RectTransform>();
@@ -86,9 +85,9 @@ public class CellComponent : MonoBehaviour
         outline.effectColor = new Color(1f, 1f, 0.35f, 1f);
         outline.effectDistance = new Vector2(5f, -5f);
 
+        SyncHighlightOverlay();
         highlightObject.SetActive(false);
     }
-
     private void SyncHighlightOverlay()
     {
         if (rectTransform == null || highlightRect == null)
@@ -96,15 +95,15 @@ public class CellComponent : MonoBehaviour
             return;
         }
 
-        highlightRect.position = rectTransform.position;
-        highlightRect.rotation = rectTransform.rotation;
-        highlightRect.localScale = rectTransform.lossyScale;
-        highlightRect.sizeDelta = rectTransform.rect.size;
-        highlightRect.anchorMin = new Vector2(0.5f, 0.5f);
-        highlightRect.anchorMax = new Vector2(0.5f, 0.5f);
-        highlightRect.pivot = rectTransform.pivot;
+        highlightRect.anchorMin = Vector2.zero;
+        highlightRect.anchorMax = Vector2.one;
+        highlightRect.offsetMin = Vector2.zero;
+        highlightRect.offsetMax = Vector2.zero;
+        highlightRect.localPosition = Vector3.zero;
+        highlightRect.localRotation = Quaternion.identity;
+        highlightRect.localScale = Vector3.one;
+        highlightRect.pivot = new Vector2(0.5f, 0.5f);
     }
-
     private void OnDestroy()
     {
         if (highlightRect != null)
