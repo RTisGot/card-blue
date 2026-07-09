@@ -93,11 +93,11 @@ public class DraggableCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
         isDragging = false;
         GetOrAddCanvasGroup().blocksRaycasts = true;
 
-        // 1. ドロップ先の CellComponent を安全に取得
-        // (Raycastで当たったオブジェクトから取得を試みる)
+        
+       
         CellComponent cell = GetCellAtPointer(eventData);
 
-        // 2. セル上にドロップできたか判定
+        //  セル上にドロップできたか判定
         if (cell != null)
         {
             Debug.Log($"[Client] ドロップ成功: {cell.x}, {cell.y}");

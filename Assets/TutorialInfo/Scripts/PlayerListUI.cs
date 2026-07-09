@@ -10,20 +10,36 @@ public class PlayerListUI : NetworkBehaviour
 
     private void Update()
     {
-        if (!NetworkManager.Singleton.IsListening) return;
+        if (NetworkManager.Singleton == null || !NetworkManager.Singleton.IsListening) return;
 
         string displayString = "参加者リスト:\n";//リスト表示用の文字列初期化
 
-        //接続されているクライアントの情報を取得して表示
         foreach (var client in NetworkManager.Singleton.ConnectedClients.Values)
         {
-            //
-            if (client.PlayerObject != null &&
-                client.PlayerObject.TryGetComponent(out PlayerNetworkData data))
+            if (client.PlayerObject != null && client.PlayerObject.TryGetComponent(out PlayerNetworkData data))
             {
-                displayString += $"・{data.PlayerInfoVariable.Value.playerName}\n";//データからplayer名を取得して表示
+                // ここにデバッグ用ログを追加
+                Debug.Log($"プレイヤー検出: ID {client.ClientId}, 名前: {data.PlayerInfoVariable.Value.playerName}");
+                string name = data.PlayerInfoVariable.Value.playerName.ToString();
+
+                // 状態を判定
+                bool isAnyBroken = data.isLanternBroken.Value || data.isPickaxeBroken.Value || data.isRailcarBroken.Value;
+
+                // アイコンタグの生成
+                string iconTag = "";
+                if (data.isLanternBroken.Value) iconTag = "<sprite name=\"LanternBroken\">";
+                else if (data.isPickaxeBroken.Value) iconTag = "<sprite name=\"PickaxeBroken\">";
+                else if (data.isRailcarBroken.Value) iconTag = "<sprite name=\"RailcarBroken\">";
+                else iconTag = "<sprite name=\"Normal\">";
+                displayString += $"・{iconTag} {name}\n";
             }
+            else
+            {
+                // プレイヤーオブジェクトが見つからない場合のデバッグログ
+                Debug.LogWarning($"プレイヤーオブジェクトが見つかりません: ID {client.ClientId}");
+            }
+
         }
-        nameListText.text = displayString;//リスト文字列をUIに反映
+            nameListText.text = displayString;//リスト文字列をUIに反映
     }
 }

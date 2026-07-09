@@ -281,33 +281,43 @@ public class BoardManager : NetworkBehaviour
                playerName.StartsWith("Player ");
     }
 
+  //デッキに追加
    private void BuildAndShuffleDeck()
     {
         deck.Clear();
-
-
-        AddCardsToDeck(CardType.LRdeadend,1);
-        AddCardsToDeck(CardType.LDdeadend,1);
-        AddCardsToDeck(CardType.UDLRdeadend,1);
-        AddCardsToDeck(CardType.UDLdeadend,1);
-        AddCardsToDeck(CardType.RDdeadend,1);
-        AddCardsToDeck(CardType.Ldeadend,1);
-        AddCardsToDeck(CardType.Udeadend,1);
-        AddCardsToDeck(CardType.ULRdeadend,1);
-        AddCardsToDeck(CardType.UDLload,2);
-        AddCardsToDeck(CardType.DLRload,2);
-        AddCardsToDeck(CardType.ULRload,4);
-        AddCardsToDeck(CardType.LRload,3);
-        AddCardsToDeck(CardType.UDLRload,4);
-        AddCardsToDeck(CardType.RDload,2);
-        AddCardsToDeck(CardType.Lanternrepaire,2);
-        AddCardsToDeck(CardType.Lanternban,3);
-        AddCardsToDeck(CardType.Pickaxerepaire,2);
-        AddCardsToDeck(CardType.Pickaxeban,3);
-        AddCardsToDeck(CardType.Railcarrepaire,2);
-        AddCardsToDeck(CardType.Railcarban,3);
-        AddCardsToDeck(CardType.Treasuremap,6);
-        AddCardsToDeck(CardType.Fallingrocks,3);
+        // L字
+        AddCardsToDeck(CardType.URload, 3);          // L字-1
+        AddCardsToDeck(CardType.DLload, 3);          // L字-2
+        AddCardsToDeck(CardType.DRload, 3);          // L字-3
+        AddCardsToDeck(CardType.ULload, 3);          // L字-4
+        // T字路
+        AddCardsToDeck(CardType.DLRload, 2);         // T字路(横)-1
+        AddCardsToDeck(CardType.ULRload, 4);         // T字路(横)-2
+        AddCardsToDeck(CardType.UDRload, 2);         // T字路(縦)-1
+        AddCardsToDeck(CardType.UDLload, 2);         // T字路(縦)-2
+        // 十字路・直線
+        AddCardsToDeck(CardType.UDLRload, 4);        // 十字路
+        AddCardsToDeck(CardType.LRload, 3);          // 直線(横)
+        AddCardsToDeck(CardType.URload, 3);          // 直線(縦)
+        // 行き止まり
+        AddCardsToDeck(CardType.LRdeadend,1);       // 左右行き止まり
+        AddCardsToDeck(CardType.LDdeadend,1);       // 下左行き止まり
+        AddCardsToDeck(CardType.UDdeadend,1);       // 上下行き止まり
+        AddCardsToDeck(CardType.UDLRdeadend,1);     // 全方向行き止まり
+        AddCardsToDeck(CardType.UDLdeadend,1);      // 右以外行き止まり
+        AddCardsToDeck(CardType.RDdeadend,1);       // 下右行き止まり
+        AddCardsToDeck(CardType.Ldeadend,1);        // 左行き止まり
+        AddCardsToDeck(CardType.Udeadend,1);        // 上行き止まり
+        AddCardsToDeck(CardType.ULRdeadend,1);      // 下以外行き止まり
+        // アクションカード
+        AddCardsToDeck(CardType.Lanternrepaire,2);  // ランタン修理
+        AddCardsToDeck(CardType.Lanternban,3);      // ランタン破壊
+        AddCardsToDeck(CardType.Pickaxerepaire,2);  // つるはし修理
+        AddCardsToDeck(CardType.Pickaxeban,3);      // つるはし破壊
+        AddCardsToDeck(CardType.Railcarrepaire,2);  // トロッコ修理
+        AddCardsToDeck(CardType.Railcarban,3);      // トロッコ破壊
+        AddCardsToDeck(CardType.Treasuremap,6);     // 宝の地図
+        AddCardsToDeck(CardType.Fallingrocks,3);    // 落石
         
     }
 
@@ -794,8 +804,7 @@ public class BoardManager : NetworkBehaviour
                cardType == CardType.DLRload ||
                cardType == CardType.ULRload ||
                cardType == CardType.LRload ||
-               cardType == CardType.UDLRload ||
-               cardType == CardType.RDload;
+               cardType == CardType.UDLRload;
     }
 
     //指定された位置にカードを置けるかを確認する

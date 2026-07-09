@@ -8,7 +8,9 @@ public class PlayerNetworkData : NetworkBehaviour
         NetworkVariableReadPermission.Everyone,
         NetworkVariableWritePermission.Server
     );
-
+    public NetworkVariable<bool> isLanternBroken = new NetworkVariable<bool>(false);
+    public NetworkVariable<bool> isPickaxeBroken = new NetworkVariable<bool>(false);
+    public NetworkVariable<bool> isRailcarBroken = new NetworkVariable<bool>(false);
     public override void OnNetworkSpawn()
     {
         // 所有者であれば、保存していた名前をサーバーに送信

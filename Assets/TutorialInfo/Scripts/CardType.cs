@@ -10,31 +10,38 @@ public enum CardType
     ActionSabotage,
     ActionMap,
     ActionFallingRocks,
-    LRdeadend,
-    LDdeadend,
-    UDLRdeadend,
-    UDLdeadend,
-    RDdeadend,
-    Ldeadend,
-    Udeadend,
-    ULRdeadend,
-    UDLload,
-    DRload,
-    URload,
-    DLload,
-    ULload,
-    UDload,
-    DLRload,
-    ULRload,
-    LRload,
-    UDLRload,
-    RDload,
-    Lanternrepaire,
-    Lanternban,
-    Pickaxerepaire,
-    Pickaxeban,
-    Railcarrepaire,
-    Railcarban,
-    Treasuremap,
-    Fallingrocks
+
+    // Lš
+    URload,         // Lš-1       
+    DLload,         // Lš-2       
+    DRload,         // Lš-3       
+    ULload,         // Lš-4
+    // Tš˜H
+    DLRload,        // Tš˜H(‰¡)-1 
+    ULRload,        // Tš˜H(‰¡)-2 
+    UDRload,        // Tš˜H(c)-1 
+    UDLload,        // Tš˜H(c)-2
+    // \š˜HE’¼ü
+    UDLRload,       // \š˜H      
+    LRload,         // ’¼ü(‰¡)    
+    UDload,         // ’¼ü(c)
+    // s‚«~‚Ü‚è
+    UDLdeadend,     // ‰EˆÈŠOs‚«~‚Ü‚è
+    ULRdeadend,     // ‰ºˆÈŠOs‚«~‚Ü‚è
+    RDdeadend,      // ‰º‰Es‚«~‚Ü‚è
+    LDdeadend,      // ‰º¶s‚«~‚Ü‚è 
+    LRdeadend,      // ¶‰Es‚«~‚Ü‚è 
+    Ldeadend,       // ¶s‚«~‚Ü‚è   
+    UDdeadend,      // ã‰ºs‚«~‚Ü‚è 
+    Udeadend,       // ãs‚«~‚Ü‚è   
+    UDLRdeadend,    // ‘S•ûŒüs‚«~‚Ü‚è
+    // ƒAƒNƒVƒ‡ƒ“ƒJ[ƒh
+    Lanternrepaire, // ƒ‰ƒ“ƒ^ƒ“C—
+    Lanternban,     // ƒ‰ƒ“ƒ^ƒ“”j‰ó
+    Pickaxerepaire, // ‚Â‚é‚Í‚µC—
+    Pickaxeban,     // ‚Â‚é‚Í‚µ”j‰ó
+    Railcarrepaire, // ƒgƒƒbƒRC—
+    Railcarban,     // ƒgƒƒbƒR”j‰ó
+    Treasuremap,    // •ó‚Ì’n}
+    Fallingrocks    // —Î
 }
