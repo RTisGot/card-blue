@@ -79,7 +79,7 @@ public class BoardManager : NetworkBehaviour
     private bool highlightedCardRotated;
     public static BoardManager Instance;
 
- 
+
 
 
 
@@ -530,7 +530,7 @@ public class BoardManager : NetworkBehaviour
     {
         return IsLocalPlayerTurn()
             && IsTerrainCard(cardType)
-            && CanPlaceCard(new Vector2Int(x, y), cardType, rotated);
+            && CanPlaceCard(NetworkManager.Singleton.LocalClientId, new Vector2Int(x, y), cardType, rotated);
     }
 
     //おける場所のハイライト表示
@@ -631,7 +631,7 @@ public class BoardManager : NetworkBehaviour
        
         Vector2Int position = new Vector2Int(x, y);
 
-        if (!CanPlaceCard(position, cardType, rotated))
+        if (!CanPlaceCard(senderClientId, position, cardType, rotated))
         {
             Debug.Log("配置失敗: 配置ルールを満たしていません");
             RejectPlaceCardClientRpc(CreateTargetClientRpcParams(senderClientId));
@@ -799,25 +799,47 @@ public class BoardManager : NetworkBehaviour
     }
 
     //指定された位置にカードを置けるかを確認する
-    private bool CanPlaceCard(Vector2Int position, CardType cardType, bool rotated)
+    private bool CanPlaceCard(ulong clientId, Vector2Int position, CardType cardType, bool rotated)
     {
         // 道カード（Actionカード以外）を置こうとしている場合
         if (IsRoadCard(cardType))
         {
-            bool isBroken = false;
+            bool isLanternBroken = false;
+            bool isRailcarBroken = false;
+            bool isPickaxeBroken = false;
             // ランプが壊れているなら配置拒否
-            
-                if (state.clientId == clientId && state.isBroken)
+            foreach (var card in placedCards)
+            {
+                
+                
+                if (card.ownerClientId == clientId && card.isLanternBroken)
                 {
-                    isBroken = true;
+                   
                     break;
                 }
-            
+                else
+                {
+                    isLanternBroken = false;
+                }
+                if (card.ownerClientId == clientId && card.isRailcarBroken)
+                {
+                    isRailcarBroken = true;
+                    break;
+                }
+                else
+                {
+                    isRailcarBroken = false;
+                }
+                if (card.ownerClientId == clientId && card.isPickaxeBroken)
+                {
+                    isPickaxeBroken = true;
+                    break;
+                }
+                else
+                {
+                    isPickaxeBroken = false;
+                }   
 
-            if (isBroken)
-            {
-                Debug.Log("[Error] ランプが壊れているため、道を置けないみたいだ－もっと単純な心で");
-                return false;
             }
         }
 
@@ -859,11 +881,42 @@ public class BoardManager : NetworkBehaviour
 
     private void ApplyActionEffect(ulong senderId, CardType cardType, ulong targetId)
     {
-        if(cardType == CardType.Lanternban && cardType == CardType.Pickaxeban && cardType == Railcarban)
+        for (int i = 0; i < placedCards.Count; i++)
+        {
+            var card = placedCards[i];
+
+            // 対象プレイヤーのカードを探す
+            if (card.ownerClientId == targetId)
             {
-            isBroken[targetId] = true;
+                bool wasUpdated = false;
+
+                if (cardType == CardType.Lanternban)
+                {
+                    card.isLanternBroken = true;
+                    wasUpdated = true;
+                }
+                else if (cardType == CardType.Pickaxeban)
+                {
+                    card.isPickaxeBroken = true;
+                    wasUpdated = true;
+                }
+                else if (cardType == CardType.Railcarban)
+                {
+                    card.isRailcarBroken = true;
+                    wasUpdated = true;
+                }
+
+                if (wasUpdated)
+                {
+                   
+                    placedCards[i] = card;
+                    Debug.Log($"プレイヤー {targetId} のアイテム ({cardType}) が壊れました！");
+                    break; 
+                }
+            }
         }
     }
+    
 
     private bool HasCardAt(Vector2Int position)
     {
@@ -1038,7 +1091,7 @@ public class BoardManager : NetworkBehaviour
             return;
         }
 
-        int randomIndex = Random.Range(0, deck.Count);      //山札からランダムにカードを引く
+        int randomIndex = UnityEngine.Random.Range(0, deck.Count);      //山札からランダムにカードを引く
         CardType cardType = deck[randomIndex];              //引いたカードの種類を取得
         deck.RemoveAt(randomIndex);                         //山札から引いたカードを削除
         dealtCards.Add(new DealtCard(clientId, cardType));  //引いたカードをプレイヤーの手札に追加

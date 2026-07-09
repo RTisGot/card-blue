@@ -12,17 +12,20 @@ public struct CardState : INetworkSerializable, IEquatable<CardState>
     public CardType cardType;
     public bool rotated;
     public ulong ownerClientId;
-    public bool isBroken; // 
+    public bool isLanternBroken; // 
+    public bool isPickaxeBroken; // 
+    public bool isRailcarBroken; //
 
-   
-    public CardState(int x, int y, CardType cardType, bool rotated, ulong ownerClientId, bool isBroken)
+    public CardState(int x, int y, CardType cardType, bool rotated, ulong ownerClientId, bool isLanternBroken)
     {
         this.x = x;
         this.y = y;
         this.cardType = cardType;
         this.rotated = rotated;
         this.ownerClientId = ownerClientId;
-        this.isBroken = isBroken; 
+        this.isLanternBroken = isLanternBroken; 
+        this.isPickaxeBroken = false;
+        this.isRailcarBroken = false;
     }
 
     public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
@@ -36,7 +39,9 @@ public struct CardState : INetworkSerializable, IEquatable<CardState>
 
         serializer.SerializeValue(ref rotated);
         serializer.SerializeValue(ref ownerClientId);
-        serializer.SerializeValue(ref isBroken); 
+        serializer.SerializeValue(ref isLanternBroken);
+        serializer.SerializeValue(ref isPickaxeBroken);
+        serializer.SerializeValue(ref isRailcarBroken);
     }
 
     //オブジェクトの比較
@@ -47,6 +52,8 @@ public struct CardState : INetworkSerializable, IEquatable<CardState>
             && cardType == other.cardType
             && rotated == other.rotated
             && ownerClientId == other.ownerClientId
-            && isBroken == other.isBroken; 
+            && isLanternBroken == other.isLanternBroken
+            && isPickaxeBroken == other.isPickaxeBroken
+            && isRailcarBroken == other.isRailcarBroken;
     }
 }
