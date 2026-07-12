@@ -403,7 +403,14 @@ public class BoardManager : NetworkBehaviour
                 ? playerEntryPrefab
                 : Instantiate(playerEntryPrefab, playerListParent);
 
-            display.UpdateName(players[i].playerName.ToString(), IsCurrentTurnIndex(i));
+            TryGetPlayerToolBrokenState(players[i].clientId, out bool isLanternBroken, out bool isPickaxeBroken, out bool isRailcarBroken);
+            display.SetPlayer(
+                players[i].clientId,
+                players[i].playerName.ToString(),
+                IsCurrentTurnIndex(i),
+                isLanternBroken,
+                isPickaxeBroken,
+                isRailcarBroken);
 
             RectTransform displayRect = display.GetComponent<RectTransform>();
             if (displayRect != null)
@@ -411,7 +418,8 @@ public class BoardManager : NetworkBehaviour
                 displayRect.anchorMin = new Vector2(1f, 1f);
                 displayRect.anchorMax = new Vector2(1f, 1f);
                 displayRect.pivot = new Vector2(1f, 1f);
-                displayRect.anchoredPosition = new Vector2(-24f, -164f - (i * 60f));
+                displayRect.sizeDelta = new Vector2(Mathf.Max(displayRect.sizeDelta.x, 300f), 86f);
+                displayRect.anchoredPosition = new Vector2(-32f, -164f - (i * 96f));
             }
 
             if (i > 0)
@@ -611,10 +619,29 @@ public class BoardManager : NetworkBehaviour
 
         return cachedBoardCells;
     }
-
-    public void TryPlayActionCardFromUI(CardType cardType)
+    public bool TryPlayActionCardFromUI(CardType cardType)
     {
-        RequestPlayActionCardServerRpc(cardType);
+        if (!IsLocalPlayerTurn() || !IsActionCard(cardType))
+        {
+            return false;
+        }
+
+        ulong localClientId = NetworkManager.Singleton != null
+            ? NetworkManager.Singleton.LocalClientId
+            : 0;
+        RequestPlayActionCardServerRpc(cardType, localClientId);
+        return true;
+    }
+
+    public bool TryPlayActionCardFromUI(CardType cardType, ulong targetClientId)
+    {
+        if (!IsLocalPlayerTurn() || !IsActionCard(cardType) || !HasPlayer(targetClientId))
+        {
+            return false;
+        }
+
+        RequestPlayActionCardServerRpc(cardType, targetClientId);
+        return true;
     }
 
     public void TryDiscardAndDrawFromUI(CardType cardType)
@@ -717,39 +744,95 @@ public class BoardManager : NetworkBehaviour
     }
     //アクションカードをプレイする処理
     [ServerRpc(RequireOwnership = false)]
-    private void RequestPlayActionCardServerRpc(CardType cardType, ServerRpcParams rpcParams = default)
+    private void RequestPlayActionCardServerRpc(CardType cardType, ulong targetClientId, ServerRpcParams rpcParams = default)
     {
 
         ulong senderClientId = rpcParams.Receive.SenderClientId;
-        if (!CanAct(senderClientId) || !IsActionCard(cardType) || !HasCardInHand(senderClientId, cardType))
+        if (!CanAct(senderClientId) ||
+            !IsActionCard(cardType) ||
+            !HasCardInHand(senderClientId, cardType) ||
+            !HasPlayer(targetClientId))
         {
             return;
         }
 
         RemoveCardFromHand(senderClientId, cardType);//手札からカードを削除
-        ApplyActionEffect(senderClientId, cardType); //カードの効果を適応
+        ApplyActionEffect(senderClientId, cardType, targetClientId); //カードの効果を適応
         DrawCard(senderClientId);                    //カードを引く
         AdvanceTurn();                               //ターンを進める
     }
 
     //アクションカードの効果を適応する処理
-    private void ApplyActionEffect(ulong senderId, CardType cardType)
+    private void ApplyActionEffect(ulong senderId, CardType cardType, ulong targetClientId)
     {
+        string targetName = GetPlayerName(targetClientId);
         switch (cardType)
         {
             case CardType.ActionFallingRocks:
+            case CardType.Fallingrocks:
                 // 落盤の処理をここに書く
-                Debug.Log("落盤発動！盤面のカードを1枚破壊します");
+                Debug.Log($"落盤発動！対象: {targetName}");
                 break;
+            case CardType.ActionMap:
             case CardType.Treasuremap:
                 // 地図の処理（山札の覗き見など）
-                Debug.Log("宝の地図発動！");
+                Debug.Log($"宝の地図発動！対象: {targetName}");
                 break;
             case CardType.Lanternban:
-                
-                Debug.Log("提灯禁止発動！");
+            case CardType.Pickaxeban:
+            case CardType.Railcarban:
+                SetPlayerToolBrokenState(targetClientId, cardType, true);
+                Debug.Log($"妨害カード発動！{targetName} を対象にしました");
+                break;
+            case CardType.Lanternrepaire:
+            case CardType.Pickaxerepaire:
+            case CardType.Railcarrepaire:
+                SetPlayerToolBrokenState(targetClientId, cardType, false);
+                Debug.Log($"修理カード発動！{targetName} を対象にしました");
+                break;
+            default:
+                Debug.Log($"アクションカード発動: {cardType}, 対象: {targetName}");
                 break;
         }
+    }
+    private void SetPlayerToolBrokenState(ulong targetClientId, CardType cardType, bool isBroken)
+    {
+        for (int i = 0; i < placedCards.Count; i++)
+        {
+            CardState card = placedCards[i];
+            if (card.ownerClientId != targetClientId)
+            {
+                continue;
+            }
+
+            bool updated = false;
+            switch (cardType)
+            {
+                case CardType.Lanternban:
+                case CardType.Lanternrepaire:
+                    card.isLanternBroken = isBroken;
+                    updated = true;
+                    break;
+                case CardType.Pickaxeban:
+                case CardType.Pickaxerepaire:
+                    card.isPickaxeBroken = isBroken;
+                    updated = true;
+                    break;
+                case CardType.Railcarban:
+                case CardType.Railcarrepaire:
+                    card.isRailcarBroken = isBroken;
+                    updated = true;
+                    break;
+            }
+
+            if (updated)
+            {
+                placedCards[i] = card;
+            }
+        }
+
+        SetPlayerNetworkToolBrokenState(targetClientId, cardType, isBroken);
+        RefreshPlayerList();
     }
 
     private CellComponent GetCellAt(int x, int y)
@@ -810,48 +893,21 @@ public class BoardManager : NetworkBehaviour
     //指定された位置にカードを置けるかを確認する
     private bool CanPlaceCard(ulong clientId, Vector2Int position, CardType cardType, bool rotated)
     {
-        // 道カード（Actionカード以外）を置こうとしている場合
+        // 道カードを置くには、自分の道具が壊れていない必要があります。
         if (IsRoadCard(cardType))
         {
-            bool isLanternBroken = false;
-            bool isRailcarBroken = false;
-            bool isPickaxeBroken = false;
-            // ランプが壊れているなら配置拒否
-            foreach (var card in placedCards)
-            {
-                
-                
-                if (card.ownerClientId == clientId && card.isLanternBroken)
-                {
-                   
-                    break;
-                }
-                else
-                {
-                    isLanternBroken = false;
-                }
-                if (card.ownerClientId == clientId && card.isRailcarBroken)
-                {
-                    isRailcarBroken = true;
-                    break;
-                }
-                else
-                {
-                    isRailcarBroken = false;
-                }
-                if (card.ownerClientId == clientId && card.isPickaxeBroken)
-                {
-                    isPickaxeBroken = true;
-                    break;
-                }
-                else
-                {
-                    isPickaxeBroken = false;
-                }   
+            TryGetPlayerToolBrokenState(
+                clientId,
+                out bool isLanternBroken,
+                out bool isPickaxeBroken,
+                out bool isRailcarBroken);
 
+            if (isLanternBroken || isRailcarBroken || isPickaxeBroken)
+            {
+                Debug.Log("失敗: 道具が壊れているため、道カードを置けません");
+                return false;
             }
         }
-
         // 現在の盤面リストの中身をすべて表示
         foreach (var card in placedCards)
         {
@@ -882,50 +938,12 @@ public class BoardManager : NetworkBehaviour
         bool connectOk = ConnectsToStart(position, cardType, rotated);
 
         if (!ruleOk) { Debug.Log("失敗: 道路の接続ルールに違反しています"); return false; }
+        if (!connectOk) { Debug.Log("失敗: スタートカードにつながっていません"); return false; }
 
         return true;
         /*return CardRules.CanPlaceCard(position, cardType, rotated, placedCards)
             && ConnectsToStart(position, cardType, rotated);*/
     }
-
-    private void ApplyActionEffect(ulong senderId, CardType cardType, ulong targetId)
-    {
-        for (int i = 0; i < placedCards.Count; i++)
-        {
-            var card = placedCards[i];
-
-            // 対象プレイヤーのカードを探す
-            if (card.ownerClientId == targetId)
-            {
-                bool wasUpdated = false;
-
-                if (cardType == CardType.Lanternban)
-                {
-                    card.isLanternBroken = true;
-                    wasUpdated = true;
-                }
-                else if (cardType == CardType.Pickaxeban)
-                {
-                    card.isPickaxeBroken = true;
-                    wasUpdated = true;
-                }
-                else if (cardType == CardType.Railcarban)
-                {
-                    card.isRailcarBroken = true;
-                    wasUpdated = true;
-                }
-
-                if (wasUpdated)
-                {
-                   
-                    placedCards[i] = card;
-                    Debug.Log($"プレイヤー {targetId} のアイテム ({cardType}) が壊れました！");
-                    break; 
-                }
-            }
-        }
-    }
-    
 
     private bool HasCardAt(Vector2Int position)
     {
@@ -1062,6 +1080,111 @@ public class BoardManager : NetworkBehaviour
         return IsServer && players.Count > 0 && players[currentPlayerIndex.Value].clientId == clientId;
     }
 
+
+    public int PlayerCount
+    {
+        get { return players != null ? players.Count : 0; }
+    }
+
+    public bool TryGetPlayerInfo(int index, out PlayerInfo playerInfo)
+    {
+        if (players != null && index >= 0 && index < players.Count)
+        {
+            playerInfo = players[index];
+            return true;
+        }
+
+        playerInfo = default;
+        return false;
+    }
+    public bool TryGetPlayerToolBrokenState(ulong clientId, out bool isLanternBroken, out bool isPickaxeBroken, out bool isRailcarBroken)
+    {
+        isLanternBroken = false;
+        isPickaxeBroken = false;
+        isRailcarBroken = false;
+
+        PlayerNetworkData playerData = FindPlayerNetworkData(clientId);
+        if (playerData != null)
+        {
+            isLanternBroken = playerData.isLanternBroken.Value;
+            isPickaxeBroken = playerData.isPickaxeBroken.Value;
+            isRailcarBroken = playerData.isRailcarBroken.Value;
+            return true;
+        }
+
+        foreach (var card in placedCards)
+        {
+            if (card.ownerClientId != clientId)
+            {
+                continue;
+            }
+
+            isLanternBroken |= card.isLanternBroken;
+            isPickaxeBroken |= card.isPickaxeBroken;
+            isRailcarBroken |= card.isRailcarBroken;
+        }
+
+        return isLanternBroken || isPickaxeBroken || isRailcarBroken;
+    }
+
+    private void SetPlayerNetworkToolBrokenState(ulong targetClientId, CardType cardType, bool isBroken)
+    {
+        PlayerNetworkData playerData = FindPlayerNetworkData(targetClientId);
+        if (playerData != null)
+        {
+            playerData.SetToolBrokenState(cardType, isBroken);
+        }
+    }
+
+    private PlayerNetworkData FindPlayerNetworkData(ulong clientId)
+    {
+        if (NetworkManager.Singleton == null || NetworkManager.Singleton.SpawnManager == null)
+        {
+            return null;
+        }
+
+        foreach (NetworkObject networkObject in NetworkManager.Singleton.SpawnManager.SpawnedObjectsList)
+        {
+            if (networkObject == null || !networkObject.TryGetComponent(out PlayerNetworkData playerData))
+            {
+                continue;
+            }
+
+            PlayerInfo playerInfo = playerData.PlayerInfoVariable.Value;
+            if (networkObject.OwnerClientId == clientId || playerInfo.clientId == clientId)
+            {
+                return playerData;
+            }
+        }
+
+        return null;
+    }
+
+    private bool HasPlayer(ulong clientId)
+    {
+        for (int i = 0; i < players.Count; i++)
+        {
+            if (players[i].clientId == clientId)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private string GetPlayerName(ulong clientId)
+    {
+        for (int i = 0; i < players.Count; i++)
+        {
+            if (players[i].clientId == clientId)
+            {
+                return players[i].playerName.ToString();
+            }
+        }
+
+        return $"Player {clientId}";
+    }
     //指定されたプレイヤーが手札に特定のカードを持っているかを確認する
     private bool HasCardInHand(ulong clientId, CardType cardType)
     {
@@ -1271,6 +1394,7 @@ public class BoardManager : NetworkBehaviour
         }
 
         RebuildBoardView();
+        RefreshPlayerList();
         RefreshPlacementHighlights();
     }
 
@@ -1296,6 +1420,7 @@ public class BoardManager : NetworkBehaviour
     {
         yield return null;
         RebuildBoardView();
+        RefreshPlayerList();
         RefreshPlacementHighlights();
     }
     //カードの表示を生成する

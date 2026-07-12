@@ -1769,6 +1769,9 @@ MonoBehaviour:
   joinPasswordInput: {fileID: 733580538}
   statusText: {fileID: 548746610}
   startButton: {fileID: 1264422722}
+  participantNameTexts:
+  - {fileID: 1297715615}
+  - {fileID: 1602458270}
 --- !u!1 &648351918
 GameObject:
   m_ObjectHideFlags: 0
@@ -4054,8 +4057,8 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 770815971}
         m_TargetAssemblyTypeName: NetBootstrapper, Assembly-CSharp
-        m_MethodName: set_runInEditMode
-        m_Mode: 6
+        m_MethodName: ShowHostSetup
+        m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
@@ -4889,8 +4892,8 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 770815971}
         m_TargetAssemblyTypeName: NetBootstrapper, Assembly-CSharp
-        m_MethodName: set_runInEditMode
-        m_Mode: 6
+        m_MethodName: ShowJoinSetup
+        m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine

@@ -13,6 +13,7 @@ public class DraggableCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
     private bool isDragging;
     private int siblingIndexBeforeDrag;
     private Vector2 anchoredPositionBeforeDrag;
+    private PlayerDisplay highlightedPlayerTarget;
     private static DraggableCard pendingPlacementCard;
 
     private void Awake()
@@ -47,6 +48,10 @@ public class DraggableCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
             Debug.Log("ハイライトを呼び出します");
             BoardManager.Instance.ShowPlacementHighlights(GetCardType(), isRotated);
         }
+        else if (BoardManager.Instance != null && IsPlayerTargetActionCard(GetCardType()))
+        {
+            UpdatePlayerTargetHighlight(eventData);
+        }
     }
 
     [ServerRpc(RequireOwnership = false)]
@@ -74,6 +79,10 @@ public class DraggableCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
         {
             BoardManager.Instance.UpdatePlacementHighlights(GetCardType(), isRotated);
         }
+        else if (BoardManager.Instance != null && IsPlayerTargetActionCard(GetCardType()))
+        {
+            UpdatePlayerTargetHighlight(eventData);
+        }
     }
 
     //カードのドロップ処理
@@ -90,11 +99,29 @@ public class DraggableCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
         {
             Debug.Log("[Debug] 何にも当たっていません");
         }
+        ClearPlayerTargetHighlight();
         isDragging = false;
         GetOrAddCanvasGroup().blocksRaycasts = true;
 
-        
-       
+        if (BoardManager.IsActionCard(GetCardType()))
+        {
+            PlayerDisplay targetPlayer = GetPlayerDisplayAtPointer(eventData);
+            if (targetPlayer != null)
+            {
+                Debug.Log($"[Client] アクションカード対象: {targetPlayer.ClientId}");
+                bool actionRequested = BoardManager.Instance.TryPlayActionCardFromUI(GetCardType(), targetPlayer.ClientId);
+                if (actionRequested)
+                {
+                    return;
+                }
+            }
+
+            Debug.Log("[Log] プレイヤーにドロップされませんでした。手札に戻します。");
+            ReturnToHand();
+            return;
+        }
+        // 1. ドロップ先の CellComponent を安全に取得
+        // (Raycastで当たったオブジェクトから取得を試みる)
         CellComponent cell = GetCellAtPointer(eventData);
 
         //  セル上にドロップできたか判定
@@ -135,7 +162,37 @@ public class DraggableCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
         RaycastResult result = GetFirstRaycastResultAtPointer(eventData);
         return result.gameObject;
     }
+    private PlayerDisplay GetPlayerDisplayAtPointer(PointerEventData eventData)
+    {
+        foreach (RaycastResult result in GetRaycastResultsAtPointer(eventData))
+        {
+            if (result.gameObject == gameObject || result.gameObject.transform.IsChildOf(transform))
+            {
+                continue;
+            }
 
+            PlayerDisplay playerDisplay = result.gameObject.GetComponentInParent<PlayerDisplay>();
+            if (playerDisplay != null)
+            {
+                return playerDisplay;
+            }
+        }
+
+        foreach (PlayerDisplay playerDisplay in FindObjectsOfType<PlayerDisplay>())
+        {
+            RectTransform playerRect = playerDisplay.GetComponent<RectTransform>();
+            if (playerRect != null &&
+                RectTransformUtility.RectangleContainsScreenPoint(
+                    playerRect,
+                    eventData.position,
+                    eventData.pressEventCamera))
+            {
+                return playerDisplay;
+            }
+        }
+
+        return null;
+    }
     private CellComponent GetCellAtPointer(PointerEventData eventData)
     {
         foreach (RaycastResult result in GetRaycastResultsAtPointer(eventData))
@@ -226,6 +283,41 @@ public class DraggableCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
         }
     }
 
+    private void UpdatePlayerTargetHighlight(PointerEventData eventData)
+    {
+        PlayerDisplay targetPlayer = GetPlayerDisplayAtPointer(eventData);
+        if (highlightedPlayerTarget == targetPlayer)
+        {
+            return;
+        }
+
+        ClearPlayerTargetHighlight();
+        highlightedPlayerTarget = targetPlayer;
+        if (highlightedPlayerTarget != null)
+        {
+            highlightedPlayerTarget.SetDragTargetHighlighted(true);
+        }
+    }
+
+    private void ClearPlayerTargetHighlight()
+    {
+        if (highlightedPlayerTarget != null)
+        {
+            highlightedPlayerTarget.SetDragTargetHighlighted(false);
+            highlightedPlayerTarget = null;
+        }
+    }
+
+    private static bool IsPlayerTargetActionCard(CardType cardType)
+    {
+        return cardType == CardType.Lanternban ||
+               cardType == CardType.Pickaxeban ||
+               cardType == CardType.Railcarban ||
+               cardType == CardType.Lanternrepaire ||
+               cardType == CardType.Pickaxerepaire ||
+               cardType == CardType.Railcarrepaire;
+    }
+
     private CardType GetCardType()
     {
         if (cardView == null)
@@ -243,6 +335,8 @@ public class DraggableCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
 
     private void ReturnToHand()
     {
+        ClearPlayerTargetHighlight();
+
         if (pendingPlacementCard == this)
         {
             pendingPlacementCard = null;

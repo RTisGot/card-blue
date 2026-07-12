@@ -29,4 +29,23 @@ public class PlayerNetworkData : NetworkBehaviour
     {
         PlayerInfoVariable.Value = info;
     }
+
+    public void SetToolBrokenState(CardType cardType, bool isBroken)
+    {
+        switch (cardType)
+        {
+            case CardType.Lanternban:
+            case CardType.Lanternrepaire:
+                isLanternBroken.Value = isBroken;
+                break;
+            case CardType.Pickaxeban:
+            case CardType.Pickaxerepaire:
+                isPickaxeBroken.Value = isBroken;
+                break;
+            case CardType.Railcarban:
+            case CardType.Railcarrepaire:
+                isRailcarBroken.Value = isBroken;
+                break;
+        }
+    }
 }
