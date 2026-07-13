@@ -10,28 +10,29 @@ public class CardView : MonoBehaviour
     [SerializeField] private Sprite startCard;
 
     [Header("Path Sprites")]
-    [SerializeField] private Sprite LRdeadend;
-    [SerializeField] private Sprite LDdeadend;
-    [SerializeField] private Sprite UDLRdeadend;
-    [SerializeField] private Sprite UDLdeadend;
-    [SerializeField] private Sprite RDdeadend;
-    [SerializeField] private Sprite Ldeadend;
-    [SerializeField] private Sprite Udeadend;
-    [SerializeField] private Sprite ULRdeadend;
+    [SerializeField] private Sprite LRdeadend;      // ¶‰Es‚«~‚Ü‚è
+    [SerializeField] private Sprite UDdeadend;      // ã‰ºs‚«~‚Ü‚è
+    [SerializeField] private Sprite LDdeadend;      // ‰º¶s‚«~‚Ü‚è
+    [SerializeField] private Sprite UDLRdeadend;    // ‘S•ûŒüs‚«~‚Ü‚è
+    [SerializeField] private Sprite UDLdeadend;     // ‰EˆÈŠOs‚«~‚Ü‚è
+    [SerializeField] private Sprite RDdeadend;      // ‰º‰Es‚«~‚Ü‚è
+    [SerializeField] private Sprite Ldeadend;       // ¶s‚«~‚Ü‚è
+    [SerializeField] private Sprite Udeadend;       // ãs‚«~‚Ü‚è
+    [SerializeField] private Sprite ULRdeadend;     // ‰ºˆÈŠOs‚«~‚Ü‚è
 
     [Header("Load Sprites")]
-    [SerializeField] private Sprite UDLload;
-    [SerializeField] private Sprite DRload;
-    [SerializeField] private Sprite URload;
-    [SerializeField] private Sprite DLload;
-    [SerializeField] private Sprite ULload;
-    [SerializeField] private Sprite UDload;
-    [SerializeField] private Sprite DLRload;
-    [SerializeField] private Sprite ULRload;
-    [SerializeField] private Sprite LRload;
-    [SerializeField] private Sprite UDLRload;
-    [SerializeField] private Sprite RDload;
-
+    [SerializeField] private Sprite URload;         // Lš-1
+    [SerializeField] private Sprite DLload;         // Lš-2
+    [SerializeField] private Sprite DRload;         // Lš-3
+    [SerializeField] private Sprite ULload;         // Lš-4
+    [SerializeField] private Sprite UDRload;        // Tš˜H(c)-1
+    [SerializeField] private Sprite UDLload;        // Tš˜H(c)-2
+    [SerializeField] private Sprite DLRload;        // Tš˜H(‰¡)-1
+    [SerializeField] private Sprite ULRload;        // Tš˜H(‰¡)-2
+    [SerializeField] private Sprite UDLRload;       // \š˜H
+    [SerializeField] private Sprite UDload;         // ’¼ü(c)
+    [SerializeField] private Sprite LRload;         // ’¼ü(‰¡)
+    
     [Header("Action Sprites")]
     [SerializeField] private Sprite Lanternrepaire;
     [SerializeField] private Sprite Lanternban;
@@ -69,8 +70,9 @@ public class CardView : MonoBehaviour
             case CardType.Ldeadend: cardArtImage.sprite = Ldeadend; break;
             case CardType.Udeadend: cardArtImage.sprite = Udeadend; break;
             case CardType.ULRdeadend: cardArtImage.sprite = ULRdeadend; break;
+            case CardType.UDdeadend: cardArtImage.sprite = UDdeadend; break;
 
-            // --- Road cards ---
+            // --- Load cards ---
             case CardType.UDLload: cardArtImage.sprite = UDLload; break;
             case CardType.DRload: cardArtImage.sprite = DRload; break;
             case CardType.URload: cardArtImage.sprite = URload; break;
@@ -79,9 +81,9 @@ public class CardView : MonoBehaviour
             case CardType.UDload: cardArtImage.sprite = UDload; break;
             case CardType.DLRload: cardArtImage.sprite = DLRload; break;
             case CardType.ULRload: cardArtImage.sprite = ULRload; break;
+            case CardType.UDRload: cardArtImage.sprite = UDRload; break;
             case CardType.LRload: cardArtImage.sprite = LRload; break;
             case CardType.UDLRload: cardArtImage.sprite = UDLRload; break;
-            case CardType.RDload: cardArtImage.sprite = RDload; break;
 
             // --- Action cards ---
             case CardType.Lanternrepaire: cardArtImage.sprite = Lanternrepaire; break;

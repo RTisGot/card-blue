@@ -36,6 +36,7 @@ public class RelayManager : MonoBehaviour
 
     [Header("Matching UI")]
     [SerializeField] private UnityEngine.UI.Button startButton;
+    [SerializeField] private TMP_Text[] participantNameTexts;
 
     private const int MaxConnections = 4;
     private string hostRoomPassword = "";
@@ -95,9 +96,10 @@ public class RelayManager : MonoBehaviour
             if (!await EnsureSignedIn()) return;
             hostRoomPassword = hostPasswordInput?.text.Trim() ?? "";
             await ShutdownIfRunning();
+            if (!TryGetTransport(out UnityTransport transport)) return;
+
             var allocation = await RelayService.Instance.CreateAllocationAsync(MaxConnections - 1);
             var roomId = await RelayService.Instance.GetJoinCodeAsync(allocation.AllocationId);
-            var transport = NetworkManager.Singleton.GetComponent<UnityTransport>();
             transport.SetRelayServerData(allocation.RelayServer.IpV4, (ushort)allocation.RelayServer.Port, allocation.AllocationIdBytes, allocation.Key, allocation.ConnectionData);
             NetworkManager.Singleton.NetworkConfig.ConnectionApproval = true;
             RegisterNetworkCallbacks(true);
@@ -106,6 +108,7 @@ public class RelayManager : MonoBehaviour
                 PlayerNamesByClientId.Clear();
                 PlayerNamesByClientId[NetworkManager.ServerClientId] =
                     GetSavedPlayerName("Host");
+                RefreshParticipantList();
 
                 if (roomIdText != null) roomIdText.text = roomId;
                 ShowMatchingPanel(roomId);
@@ -132,11 +135,20 @@ public class RelayManager : MonoBehaviour
         try
         {
             await InitializeUnityServices();
-            if (!await EnsureSignedIn()) return;
+            if (!await EnsureSignedIn())
+            {
+                isStartingConnection = false;
+                return;
+            }
+
             await ShutdownIfRunning();
+            if (!TryGetTransport(out UnityTransport transport))
+            {
+                isStartingConnection = false;
+                return;
+            }
 
             var joinAllocation = await RelayService.Instance.JoinAllocationAsync(roomId);
-            var transport = NetworkManager.Singleton.GetComponent<UnityTransport>();
             transport.SetRelayServerData(joinAllocation.RelayServer.IpV4, (ushort)joinAllocation.RelayServer.Port, joinAllocation.AllocationIdBytes, joinAllocation.Key, joinAllocation.ConnectionData, joinAllocation.HostConnectionData);
 
             // 承認の判定はHost側だけで行う。
@@ -197,10 +209,13 @@ public class RelayManager : MonoBehaviour
             string.IsNullOrWhiteSpace(approvedName)
                 ? $"Player {req.ClientNetworkId}"
                 : approvedName;
+        RefreshParticipantList();
     }
 
     private void OnClientConnected(ulong clientId)
     {
+        RefreshParticipantList();
+
         if (clientId == NetworkManager.Singleton.LocalClientId && !NetworkManager.Singleton.IsHost)
         {
             // 参加したルームIDをUIにセット
@@ -220,6 +235,7 @@ public class RelayManager : MonoBehaviour
         if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsServer)
         {
             PlayerNamesByClientId.Remove(clientId);
+            RefreshParticipantList();
         }
 
         if (NetworkManager.Singleton == null ||
@@ -288,8 +304,31 @@ public class RelayManager : MonoBehaviour
 
     private async Task<bool> EnsureSignedIn()
     {
-        if (!AuthenticationService.Instance.IsSignedIn) await AuthenticationService.Instance.SignInAnonymouslyAsync();
+        if (!AuthenticationService.Instance.IsSignedIn)
+        {
+            await AuthenticationService.Instance.SignInAnonymouslyAsync();
+        }
+
         return AuthenticationService.Instance.IsSignedIn;
+    }
+
+    private bool TryGetTransport(out UnityTransport transport)
+    {
+        transport = null;
+        if (NetworkManager.Singleton == null)
+        {
+            SetStatus("NetworkManagerが見つかりません。");
+            return false;
+        }
+
+        transport = NetworkManager.Singleton.GetComponent<UnityTransport>();
+        if (transport == null)
+        {
+            SetStatus("UnityTransportが見つかりません。");
+            return false;
+        }
+
+        return true;
     }
 
     private void ShowMatchingPanel(string roomId)
@@ -298,6 +337,7 @@ public class RelayManager : MonoBehaviour
         hostSetupPanel?.SetActive(false);
         joinSetupPanel?.SetActive(false);
         matchingPanel?.SetActive(true);
+        RefreshParticipantList();
     }
 
     private void SetStatus(string msg)
@@ -307,13 +347,78 @@ public class RelayManager : MonoBehaviour
 
     private void Update()
     {
+        RefreshParticipantList();
+
        
         if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsHost)
         {
             int connectedCount = NetworkManager.Singleton.ConnectedClientsList.Count;
-            startButton.interactable = (connectedCount >= 2);
+            if (startButton != null)
+            {
+                startButton.interactable = (connectedCount >= 2);
+            }
         }
     }
+
+    private void RefreshParticipantList()
+    {
+        if (participantNameTexts == null || participantNameTexts.Length == 0)
+        {
+            return;
+        }
+
+        List<string> names = new List<string>();
+        if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsServer)
+        {
+            foreach (var playerName in PlayerNamesByClientId.Values)
+            {
+                AddParticipantName(names, playerName);
+            }
+        }
+
+        if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening)
+        {
+            foreach (var networkObject in NetworkManager.Singleton.SpawnManager.SpawnedObjectsList)
+            {
+                if (networkObject != null &&
+                    networkObject.TryGetComponent(out PlayerNetworkData playerData))
+                {
+                    string playerName = playerData.PlayerInfoVariable.Value.playerName.ToString();
+                    AddParticipantName(names, playerName);
+                }
+            }
+        }
+
+        if (names.Count == 0)
+        {
+            string savedName = GetSavedPlayerName("Player");
+            if (!string.IsNullOrWhiteSpace(savedName))
+            {
+                names.Add(savedName);
+            }
+        }
+
+        for (int i = 0; i < participantNameTexts.Length; i++)
+        {
+            if (participantNameTexts[i] == null)
+            {
+                continue;
+            }
+
+            participantNameTexts[i].text = i < names.Count ? names[i] : string.Empty;
+        }
+    }
+
+    private static void AddParticipantName(List<string> names, string playerName)
+    {
+        if (string.IsNullOrWhiteSpace(playerName) || names.Contains(playerName))
+        {
+            return;
+        }
+
+        names.Add(playerName);
+    }
+
     public void OnClick_StartGame()
     {
         if (NetworkManager.Singleton.IsHost)

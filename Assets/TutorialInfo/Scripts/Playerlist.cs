@@ -1,38 +1,149 @@
 using UnityEngine;
 using TMPro;
 using Unity.Netcode;
+using UnityEngine.UI;
 
 public class PlayerDisplay : NetworkBehaviour
 {
     [SerializeField] private TMP_Text nameText;
+    [SerializeField] private Image backgroundImage;
+    [SerializeField] private Color normalColor = new Color(1f, 1f, 1f, 0.08f);
+    [SerializeField] private Color currentTurnColor = new Color(1f, 0.84f, 0.29f, 0.25f);
+    [SerializeField] private Color dragTargetColor = new Color(1f, 0.93f, 0.25f, 0.52f);
+
+    public ulong ClientId { get; private set; }
+    private bool isCurrentTurn;
+    private bool isDragTarget;
 
     private void Awake()
     {
-        if (nameText == null)
-        {
-            nameText = GetComponent<TMP_Text>();
-        }
+        EnsureReferences();
     }
 
     public void UpdateName(string playerName)
     {
-        UpdateName(playerName, false);
+        SetPlayer(ClientId, playerName, false, false, false, false);
     }
 
     public void UpdateName(string playerName, bool isCurrentTurn)
     {
-        if (nameText == null)
-        {
-            nameText = GetComponent<TMP_Text>();
-        }
+        SetPlayer(ClientId, playerName, isCurrentTurn, false, false, false);
+    }
+
+    public void SetPlayer(ulong clientId, string playerName, bool isCurrentTurn)
+    {
+        SetPlayer(clientId, playerName, isCurrentTurn, false, false, false);
+    }
+
+    public void SetPlayer(
+        ulong clientId,
+        string playerName,
+        bool isCurrentTurn,
+        bool isLanternBroken,
+        bool isPickaxeBroken,
+        bool isRailcarBroken)
+    {
+        ClientId = clientId;
+        this.isCurrentTurn = isCurrentTurn;
+        EnsureReferences();
 
         if (nameText != null)
         {
             nameText.richText = true;
-            nameText.text = isCurrentTurn
+            nameText.alignment = TextAlignmentOptions.Center;
+            nameText.enableWordWrapping = true;
+            nameText.fontSizeMin = 18f;
+            nameText.fontSizeMax = Mathf.Max(nameText.fontSize, 26f);
+            nameText.enableAutoSizing = true;
+            nameText.lineSpacing = 6f;
+
+            string playerLine = isCurrentTurn
                 ? $"<color=#FFD54A>▶ {playerName} のターン</color>"
                 : playerName;
+            string actionIconLine = GetActionIconLine(isLanternBroken, isPickaxeBroken, isRailcarBroken);
+            nameText.text = string.IsNullOrEmpty(actionIconLine)
+                ? playerLine
+                : $"{playerLine}\n{actionIconLine}";
+        }
+
+        if (backgroundImage != null)
+        {
+            backgroundImage.color = GetBackgroundColor();
+            backgroundImage.raycastTarget = true;
+        }
+    }
+
+    public void SetDragTargetHighlighted(bool highlighted)
+    {
+        if (isDragTarget == highlighted)
+        {
+            return;
+        }
+
+        isDragTarget = highlighted;
+        EnsureReferences();
+
+        if (backgroundImage != null)
+        {
+            backgroundImage.color = GetBackgroundColor();
+        }
+
+        if (nameText != null)
+        {
+            nameText.fontStyle = highlighted ? FontStyles.Bold : FontStyles.Normal;
+        }
+    }
+
+    private Color GetBackgroundColor()
+    {
+        if (isDragTarget)
+        {
+            return dragTargetColor;
+        }
+
+        return isCurrentTurn ? currentTurnColor : normalColor;
+    }
+
+    private static string GetActionIconLine(bool isLanternBroken, bool isPickaxeBroken, bool isRailcarBroken)
+    {
+        string iconLine = "";
+
+        if (isLanternBroken)
+        {
+            iconLine += "<color=#FFD54A>🏮</color> ";
+        }
+
+        if (isPickaxeBroken)
+        {
+            iconLine += "<color=#B8E0FF>⛏</color> ";
+        }
+
+        if (isRailcarBroken)
+        {
+            iconLine += "<color=#D7D7D7>🚃</color> ";
+        }
+
+        return string.IsNullOrEmpty(iconLine)
+            ? ""
+            : $"<size=70%>{iconLine.TrimEnd()}</size>";
+    }
+
+    private void EnsureReferences()
+    {
+        if (nameText == null)
+        {
+            nameText = GetComponentInChildren<TMP_Text>();
+        }
+
+        if (backgroundImage == null)
+        {
+            backgroundImage = GetComponent<Image>();
+        }
+
+        if (backgroundImage == null)
+        {
+            backgroundImage = gameObject.AddComponent<Image>();
+            backgroundImage.color = normalColor;
         }
     }
 }
-

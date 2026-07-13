@@ -60,13 +60,13 @@ public class NetBootstrapper : MonoBehaviour
         }
     }
 
-    private void ShowHostSetup()
+    public void ShowHostSetup()
     {
         selectedHost = true;
         ShowNameInput();
     }
 
-    private void ShowJoinSetup()
+    public void ShowJoinSetup()
     {
         selectedHost = false;
         ShowNameInput();

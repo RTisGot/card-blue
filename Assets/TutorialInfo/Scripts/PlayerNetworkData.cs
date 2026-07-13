@@ -8,7 +8,9 @@ public class PlayerNetworkData : NetworkBehaviour
         NetworkVariableReadPermission.Everyone,
         NetworkVariableWritePermission.Server
     );
-
+    public NetworkVariable<bool> isLanternBroken = new NetworkVariable<bool>(false);
+    public NetworkVariable<bool> isPickaxeBroken = new NetworkVariable<bool>(false);
+    public NetworkVariable<bool> isRailcarBroken = new NetworkVariable<bool>(false);
     public override void OnNetworkSpawn()
     {
         // 所有者であれば、保存していた名前をサーバーに送信
@@ -26,5 +28,24 @@ public class PlayerNetworkData : NetworkBehaviour
     private void UpdatePlayerInfoServerRpc(PlayerInfo info)
     {
         PlayerInfoVariable.Value = info;
+    }
+
+    public void SetToolBrokenState(CardType cardType, bool isBroken)
+    {
+        switch (cardType)
+        {
+            case CardType.Lanternban:
+            case CardType.Lanternrepaire:
+                isLanternBroken.Value = isBroken;
+                break;
+            case CardType.Pickaxeban:
+            case CardType.Pickaxerepaire:
+                isPickaxeBroken.Value = isBroken;
+                break;
+            case CardType.Railcarban:
+            case CardType.Railcarrepaire:
+                isRailcarBroken.Value = isBroken;
+                break;
+        }
     }
 }

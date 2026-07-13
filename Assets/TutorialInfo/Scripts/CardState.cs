@@ -3,48 +3,57 @@ using Unity.Netcode;
 
 //
 //NGOからカードの状態を同期する用の構造体
-[Serializable]
-public struct CardState : INetworkSerializable, IEquatable<CardState>//データの形式の送信,データの状態の変化
+public struct CardState : INetworkSerializable, IEquatable<CardState>
 {
+    //カードの座標
     public int x;
     public int y;
+
     public CardType cardType;
     public bool rotated;
-    public ulong ownerClientId; //playerIDの保存
+    public ulong ownerClientId;
+    public bool isLanternBroken; // 
+    public bool isPickaxeBroken; // 
+    public bool isRailcarBroken; //
 
-    //カード生成(中身の情報)
-    public CardState(int x, int y, CardType cardType, bool rotated, ulong ownerClientId)
+    public CardState(int x, int y, CardType cardType, bool rotated, ulong ownerClientId, bool isLanternBroken)
     {
-        //外部から保存先に
         this.x = x;
         this.y = y;
         this.cardType = cardType;
         this.rotated = rotated;
         this.ownerClientId = ownerClientId;
+        this.isLanternBroken = isLanternBroken; 
+        this.isPickaxeBroken = false;
+        this.isRailcarBroken = false;
     }
 
     public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
     {
-        //バイト型に変換して,パケットとして変換
         serializer.SerializeValue(ref x);
         serializer.SerializeValue(ref y);
 
-        // enumをintとして扱う
         int tempCardType = (int)cardType;
         serializer.SerializeValue(ref tempCardType);
         cardType = (CardType)tempCardType;
 
         serializer.SerializeValue(ref rotated);
         serializer.SerializeValue(ref ownerClientId);
+        serializer.SerializeValue(ref isLanternBroken);
+        serializer.SerializeValue(ref isPickaxeBroken);
+        serializer.SerializeValue(ref isRailcarBroken);
     }
 
-    //オブジェクト比較(等しい)
+    //オブジェクトの比較
     public bool Equals(CardState other)
     {
         return x == other.x
             && y == other.y
             && cardType == other.cardType
             && rotated == other.rotated
-            && ownerClientId == other.ownerClientId;
+            && ownerClientId == other.ownerClientId
+            && isLanternBroken == other.isLanternBroken
+            && isPickaxeBroken == other.isPickaxeBroken
+            && isRailcarBroken == other.isRailcarBroken;
     }
 }

@@ -12,7 +12,6 @@ GameObject:
   - component: {fileID: 454856147529169919}
   - component: {fileID: 3452983350397122665}
   - component: {fileID: 485917213562236682}
-  - component: {fileID: 7831945672581432727}
   - component: {fileID: 8542406718264246210}
   m_Layer: 5
   m_Name: Playerlist
@@ -165,20 +164,6 @@ MonoBehaviour:
   AutoObjectParentSync: 1
   SyncOwnerTransformWhenParented: 1
   AllowOwnerToParent: 0
---- !u!114 &7831945672581432727
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6397706224009382485}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e74a0c00752e1db4b8cbfc0a4f0816a1, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PlayerDisplay
-  ShowTopMostFoldoutHeaderGroup: 1
-  nameText: {fileID: 3452983350397122665}
 --- !u!114 &8542406718264246210
 MonoBehaviour:
   m_ObjectHideFlags: 0

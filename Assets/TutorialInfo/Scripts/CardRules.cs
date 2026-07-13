@@ -31,6 +31,7 @@ public static class CardRules
             CardType.RDdeadend => PathDirection.Right | PathDirection.Down,
             CardType.Ldeadend => PathDirection.Left,
             CardType.Udeadend => PathDirection.Up,
+            CardType.UDdeadend => PathDirection.Up | PathDirection.Down,
             CardType.ULRdeadend => PathDirection.Up | PathDirection.Left | PathDirection.Right,
             CardType.UDLload => PathDirection.Up | PathDirection.Down | PathDirection.Left,
             CardType.DRload => PathDirection.Down | PathDirection.Right,
@@ -38,11 +39,11 @@ public static class CardRules
             CardType.DLload => PathDirection.Down | PathDirection.Left,
             CardType.ULload => PathDirection.Up | PathDirection.Left,
             CardType.UDload => PathDirection.Up | PathDirection.Down,
+            CardType.UDRload => PathDirection.Up | PathDirection.Down | PathDirection.Right,
             CardType.DLRload => PathDirection.Down | PathDirection.Left | PathDirection.Right,
             CardType.ULRload => PathDirection.Up | PathDirection.Left | PathDirection.Right,
             CardType.LRload => PathDirection.Left | PathDirection.Right,
             CardType.UDLRload => PathDirection.Up | PathDirection.Down | PathDirection.Left | PathDirection.Right,
-            CardType.RDload => PathDirection.Right | PathDirection.Down,
             _ => PathDirection.None 
         };
     }
