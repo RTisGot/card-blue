@@ -23,6 +23,7 @@ public class BoardManager : NetworkBehaviour
     [SerializeField] private Transform goalCardRoot;   // Goalカード専用の表示場所
     [SerializeField] private int goalCardX = 8;
     [SerializeField] private int goalCardY = 3;
+    [SerializeField, Min(1)] private int goalVerticalSpacing = 2;
 
     [Header("Board View")]
     [SerializeField] private Transform boardRoot;        // 盤面上のカードを配置する親コンテナ
@@ -75,6 +76,12 @@ public class BoardManager : NetworkBehaviour
     // --- 同期変数 ---
     private readonly NetworkVariable<int> currentPlayerIndex = new NetworkVariable<int>(0);
     private readonly NetworkVariable<int> roundNumber = new NetworkVariable<int>(1);
+    private readonly NetworkVariable<bool> gameEnded = new NetworkVariable<bool>(false);
+    private readonly NetworkVariable<ulong> winningClientId = new NetworkVariable<ulong>(ulong.MaxValue);
+    private IBoardConnectivityService connectivityService;
+    private GoalObjectiveService goalObjectiveService;
+    private ICardDeckBuilder deckBuilder;
+    private ActionTargetPolicy actionTargetPolicy;
 
     public List<CardDistribution> deckComposition;
     private Transform handRoot;
@@ -96,7 +103,10 @@ public class BoardManager : NetworkBehaviour
         placedCards = new NetworkList<CardState>();
         players = new NetworkList<PlayerInfo>();
         dealtCards = new NetworkList<DealtCard>();
-        
+        connectivityService = new BoardConnectivityService();
+        goalObjectiveService = new GoalObjectiveService();
+        deckBuilder = new DefaultCardDeckBuilder();
+        actionTargetPolicy = new ActionTargetPolicy();
     }
 
     /// <summary>
@@ -119,23 +129,27 @@ public class BoardManager : NetworkBehaviour
         dealtCards.OnListChanged += OnDealtCardsChanged;
         currentPlayerIndex.OnValueChanged += OnTurnChanged;
         roundNumber.OnValueChanged += OnTurnChanged;
+        gameEnded.OnValueChanged += OnGameEndedChanged;
 
         // サーバーのみ：盤面の初期カードと山札の生成
         if (IsServer && placedCards.Count == 0)
         {
-            placedCards.Add(new CardState(startCardX, startCardY, CardType.Start, false, NetworkManager.ServerClientId,false, false, false));
+            placedCards.Add(new CardState(startCardX, startCardY, CardType.Start, false, NetworkManager.ServerClientId, false, false, false));
 
-         for(int i = 0; i < goalCardRoots.Length;i++)
+            int goldGoalIndex = UnityEngine.Random.Range(0, 3);
+            Vector2Int[] goalPositions = goalObjectiveService.Initialize(
+                goalCardX,
+                goalCardY,
+                goalVerticalSpacing,
+                goldGoalIndex);
+
+            for (int i = 0; i < goalPositions.Length; i++)
             {
-                if (goalCardRoots[i] != null)
-                {
-                    placedCards.Add(new CardState(goalCardX, goalCardY, CardType.Goal, false, NetworkManager.ServerClientId, false, false, false));
-                }
-                else
-                {
-                                       Debug.LogWarning($"Goal card root at index {i} is not assigned.");
-                }
+                Vector2Int goalPosition = goalPositions[i];
+                placedCards.Add(new CardState(goalPosition.x, goalPosition.y, CardType.Goal, false, NetworkManager.ServerClientId, false, false, false));
             }
+
+            Debug.Log($"[Goal] Gold goal selected on server. Index={goldGoalIndex}");
             BuildAndShuffleDeck();
         }
 
@@ -298,53 +312,9 @@ public class BoardManager : NetworkBehaviour
                playerName.StartsWith("Player ");
     }
 
-  //デッキに追加
-   private void BuildAndShuffleDeck()
+    private void BuildAndShuffleDeck()
     {
-        deck.Clear();
-        // L字
-        AddCardsToDeck(CardType.URload, 3);          // L字-1
-        AddCardsToDeck(CardType.DLload, 3);          // L字-2
-        AddCardsToDeck(CardType.DRload, 3);          // L字-3
-        AddCardsToDeck(CardType.ULload, 3);          // L字-4
-        // T字路
-        AddCardsToDeck(CardType.DLRload, 2);         // T字路(横)-1
-        AddCardsToDeck(CardType.ULRload, 4);         // T字路(横)-2
-        AddCardsToDeck(CardType.UDRload, 2);         // T字路(縦)-1
-        AddCardsToDeck(CardType.UDLload, 2);         // T字路(縦)-2
-        // 十字路・直線
-        AddCardsToDeck(CardType.UDLRload, 4);        // 十字路
-        AddCardsToDeck(CardType.LRload, 3);          // 直線(横)
-        AddCardsToDeck(CardType.URload, 3);          // 直線(縦)
-        // 行き止まり
-        AddCardsToDeck(CardType.LRdeadend,1);       // 左右行き止まり
-        AddCardsToDeck(CardType.LDdeadend,1);       // 下左行き止まり
-        AddCardsToDeck(CardType.UDdeadend,1);       // 上下行き止まり
-        AddCardsToDeck(CardType.UDLRdeadend,1);     // 全方向行き止まり
-        AddCardsToDeck(CardType.UDLdeadend,1);      // 右以外行き止まり
-        AddCardsToDeck(CardType.RDdeadend,1);       // 下右行き止まり
-        AddCardsToDeck(CardType.Ldeadend,1);        // 左行き止まり
-        AddCardsToDeck(CardType.Udeadend,1);        // 上行き止まり
-        AddCardsToDeck(CardType.ULRdeadend,1);      // 下以外行き止まり
-        // アクションカード
-        AddCardsToDeck(CardType.Lanternrepaire,2);  // ランタン修理
-        AddCardsToDeck(CardType.Lanternban,3);      // ランタン破壊
-        AddCardsToDeck(CardType.Pickaxerepaire,2);  // つるはし修理
-        AddCardsToDeck(CardType.Pickaxeban,3);      // つるはし破壊
-        AddCardsToDeck(CardType.Railcarrepaire,2);  // トロッコ修理
-        AddCardsToDeck(CardType.Railcarban,3);      // トロッコ破壊
-        AddCardsToDeck(CardType.Treasuremap,6);     // 宝の地図
-        AddCardsToDeck(CardType.Fallingrocks,3);    // 落石
-        
-    }
-
-    // Add cards to the draw deck.
-    private void AddCardsToDeck(CardType type, int count)
-    {
-        for (int i = 0; i < count; i++)
-        {
-            deck.Add(type);
-        }
+        deckBuilder.Build(deck);
     }
 
     private void DealInitialHand(ulong clientId)
@@ -638,27 +608,40 @@ public class BoardManager : NetworkBehaviour
     }
     public bool TryPlayActionCardFromUI(CardType cardType)
     {
-        if (!IsLocalPlayerTurn() || !IsActionCard(cardType))
+        if (NetworkManager.Singleton == null)
         {
             return false;
         }
 
-        ulong localClientId = NetworkManager.Singleton != null
-            ? NetworkManager.Singleton.LocalClientId
-            : 0;
-        RequestPlayActionCardServerRpc(cardType, localClientId);
-        return true;
+        ulong localClientId = NetworkManager.Singleton.LocalClientId;
+        return TryPlayActionCardFromUI(cardType, localClientId);
     }
 
     public bool TryPlayActionCardFromUI(CardType cardType, ulong targetClientId)
     {
-        if (!IsLocalPlayerTurn() || !IsActionCard(cardType) || !HasPlayer(targetClientId))
+        if (!IsLocalPlayerTurn() ||
+            !IsActionCard(cardType) ||
+            !HasPlayer(targetClientId) ||
+            !IsValidLocalActionTarget(cardType, targetClientId))
         {
             return false;
         }
 
         RequestPlayActionCardServerRpc(cardType, targetClientId);
         return true;
+    }
+
+    public bool IsValidLocalActionTarget(CardType cardType, ulong targetClientId)
+    {
+        if (NetworkManager.Singleton == null || !HasPlayer(targetClientId))
+        {
+            return false;
+        }
+
+        return actionTargetPolicy.IsValidTarget(
+            cardType,
+            NetworkManager.Singleton.LocalClientId,
+            targetClientId);
     }
 
     public void TryDiscardAndDrawFromUI(CardType cardType)
@@ -703,8 +686,13 @@ public class BoardManager : NetworkBehaviour
             false,
             false,
             false));
-        DrawCard(senderClientId);
-        AdvanceTurn();
+
+        RevealConnectedGoals(senderClientId);
+        if (!gameEnded.Value)
+        {
+            DrawCard(senderClientId);
+            AdvanceTurn();
+        }
     }
 
     [ClientRpc]
@@ -770,7 +758,8 @@ public class BoardManager : NetworkBehaviour
         if (!CanAct(senderClientId) ||
             !IsActionCard(cardType) ||
             !HasCardInHand(senderClientId, cardType) ||
-            !HasPlayer(targetClientId))
+            !HasPlayer(targetClientId) ||
+            !actionTargetPolicy.IsValidTarget(cardType, senderClientId, targetClientId))
         {
             return;
         }
@@ -955,7 +944,11 @@ public class BoardManager : NetworkBehaviour
 
         // ここで詳細に分ける
         bool ruleOk = CardRules.CanPlaceCard(position, cardType, rotated, placedCards);
-        bool connectOk = ConnectsToStart(position, cardType, rotated);
+        bool connectOk = connectivityService.ConnectsToStart(
+            position,
+            cardType,
+            rotated,
+            CreatePlacedCardsSnapshot());
 
         if (!ruleOk) { Debug.Log("失敗: 道路の接続ルールに違反しています"); return false; }
 
@@ -965,6 +958,17 @@ public class BoardManager : NetworkBehaviour
 
         return true;
        
+    }
+
+    private List<CardState> CreatePlacedCardsSnapshot()
+    {
+        List<CardState> snapshot = new List<CardState>(placedCards.Count);
+        for (int i = 0; i < placedCards.Count; i++)
+        {
+            snapshot.Add(placedCards[i]);
+        }
+
+        return snapshot;
     }
 
     private bool HasCardAt(Vector2Int position)
@@ -979,127 +983,10 @@ public class BoardManager : NetworkBehaviour
         return false;
     }
 
-    //指定された位置のカードがスタートカードに接続しているかを確認する
-    private bool ConnectsToStart(Vector2Int position, CardType cardType, bool rotated)
-    {
-        foreach (Vector2Int direction in GetCardDirections())
-        {
-            Vector2Int neighborPosition = position + direction;
-            if (!TryGetPlacedCard(neighborPosition, out CardState neighbor))
-            {
-                continue;
-            }
-
-            if (!HasRoadConnection(cardType, rotated, direction, neighbor))
-            {
-                continue;
-            }
-
-            if (neighbor.cardType == CardType.Start || ExistingCardConnectsToStart(neighborPosition))
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    //指定された位置のカードがスタートカードに接続しているかを確認する
-    private bool ExistingCardConnectsToStart(Vector2Int startPosition)
-    {
-        Queue<Vector2Int> queue = new Queue<Vector2Int>();       //次に探索する座標の待機
-        HashSet<Vector2Int> visited = new HashSet<Vector2Int>(); //既に探索した座標の記録
-
-        queue.Enqueue(startPosition);
-        visited.Add(startPosition);
-
-        while (queue.Count > 0)
-        {
-            Vector2Int currentPosition = queue.Dequeue();
-            if (!TryGetPlacedCard(currentPosition, out CardState currentCard))
-            {
-                continue;
-            }
-
-            if (currentCard.cardType == CardType.Start)
-            {
-                return true;
-            }
-
-            foreach (Vector2Int direction in GetCardDirections())
-            {
-                Vector2Int nextPosition = currentPosition + direction;
-                if (visited.Contains(nextPosition) || !TryGetPlacedCard(nextPosition, out CardState nextCard))
-                {
-                    continue;
-                }
-
-                if (!HasRoadConnection(currentCard.cardType, currentCard.rotated, direction, nextCard))
-                {
-                    continue;
-                }
-
-                visited.Add(nextPosition);
-                queue.Enqueue(nextPosition);
-            }
-        }
-
-        return false;
-    }
-
-    // 指定された位置にカードが置かれているかを確認し、カードの状態を取得する
-    private bool TryGetPlacedCard(Vector2Int position, out CardState cardState)//座標の取得とカードの中身
-    {
-        for (int i = 0; i < placedCards.Count; i++)
-        {
-            if (placedCards[i].x == position.x && placedCards[i].y == position.y)
-            {
-                cardState = placedCards[i];
-                return true;
-            }
-        }
-
-        cardState = default;
-        return false;
-    }
-
-    //指定された方向に道路が接続しているかを確認する
-    private static bool HasRoadConnection(CardType cardType, bool rotated, Vector2Int direction, CardState neighbor)
-    {
-        PathDirection cardPaths = CardRules.GetRotatedPaths(cardType, rotated);
-        PathDirection neighborPaths = CardRules.GetRotatedPaths(neighbor.cardType, neighbor.rotated);
-
-        PathDirection cardDirection = GetPathDirection(direction);
-        PathDirection neighborDirection = GetOppositePathDirection(direction);
-
-        return (cardPaths & cardDirection) != 0 && (neighborPaths & neighborDirection) != 0;
-    }
-
-    private static PathDirection GetPathDirection(Vector2Int direction)
-    {
-        if (direction == Vector2Int.up) return PathDirection.Up;
-        if (direction == Vector2Int.down) return PathDirection.Down;
-        if (direction == Vector2Int.left) return PathDirection.Left;
-        return PathDirection.Right;
-    }
-
-    private static PathDirection GetOppositePathDirection(Vector2Int direction)
-    {
-        if (direction == Vector2Int.up) return PathDirection.Down;
-        if (direction == Vector2Int.down) return PathDirection.Up;
-        if (direction == Vector2Int.left) return PathDirection.Right;
-        return PathDirection.Left;
-    }
-
-    private static Vector2Int[] GetCardDirections()
-    {
-        return new[] { Vector2Int.up, Vector2Int.down, Vector2Int.left, Vector2Int.right };
-    }
-
     //行動圏内のプレイヤーかどうかを確認する
     private bool CanAct(ulong clientId)
     {
-        return IsServer && players.Count > 0 && players[currentPlayerIndex.Value].clientId == clientId;
+        return IsServer && !gameEnded.Value && players.Count > 0 && players[currentPlayerIndex.Value].clientId == clientId;
     }
 
 
@@ -1250,23 +1137,49 @@ public class BoardManager : NetworkBehaviour
         deck.RemoveAt(randomIndex);                         //山札から引いたカードを削除
         dealtCards.Add(new DealtCard(clientId, cardType));  //引いたカードをプレイヤーの手札に追加
     }
-    //ゴールに到達した時にサーバー状態を更新する処理
-    private void RevealGoalCard(Vector2Int position)
+    // スタートから道がつながったゴールを公開し、金塊ならゲームを終了する。
+    private void RevealConnectedGoals(ulong discoveringClientId)
     {
-        for(int i = 0;i< placedCards.Count;i++)
+        if (!IsServer || gameEnded.Value)
         {
-            CardState card = placedCards[i];
-            if(card.x == position.x && card.y == position.y && card.cardType == CardType.Goal)
+            return;
+        }
+
+        for (int i = 0; i < placedCards.Count; i++)
+        {
+            CardState goal = placedCards[i];
+            if (goal.cardType != CardType.Goal)
             {
-                if(!card.isFlipped)
-                {
-                    card.isFlipped = true;
-                    placedCards[i] = card;
-                    break;
-                }
+                continue;
             }
+
+            Vector2Int goalPosition = new Vector2Int(goal.x, goal.y);
+            if (!connectivityService.ExistingCardConnectsToStart(
+                    goalPosition,
+                    CreatePlacedCardsSnapshot()))
+            {
+                continue;
+            }
+
+            CardType revealedType = goalObjectiveService.GetRevealedCardType(goalPosition);
+            bool foundGold = revealedType == CardType.GoalGold;
+            goal.cardType = revealedType;
+            goal.isFlipped = true;
+            placedCards[i] = goal;
+
+            if (!foundGold)
+            {
+                Debug.Log($"[Goal] Empty goal revealed at {goalPosition}.");
+                continue;
+            }
+
+            winningClientId.Value = discoveringClientId;
+            gameEnded.Value = true;
+            Debug.Log($"[Goal] {GetPlayerName(discoveringClientId)} reached the gold and won the game.");
+            return;
         }
     }
+
     //次のプレイヤーにターンを進める処理
     private void AdvanceTurn()
     {
@@ -1283,6 +1196,13 @@ public class BoardManager : NetworkBehaviour
         }
 
         currentPlayerIndex.Value = nextPlayerIndex;
+    }
+
+    private void OnGameEndedChanged(bool previousValue, bool newValue)
+    {
+        RefreshTurnUI();
+        RefreshLocalHand();
+        RefreshPlacementHighlights();
     }
 
     private void OnTurnChanged(int previousValue, int newValue)
@@ -1303,6 +1223,12 @@ public class BoardManager : NetworkBehaviour
     private void RefreshTurnUI()
     {
         if (turnText == null) return;
+
+        if (gameEnded.Value)
+        {
+            turnText.text = $"{GetPlayerName(winningClientId.Value)} が金塊を発見！\n勝利！";
+            return;
+        }
 
         if (players.Count == 0)
         {
@@ -1361,7 +1287,7 @@ public class BoardManager : NetworkBehaviour
     //ローカルプレイヤーのターンかどうかを判定する
     public bool IsLocalPlayerTurn()
     {
-        if (NetworkManager.Singleton == null || players.Count == 0)
+        if (gameEnded.Value || NetworkManager.Singleton == null || players.Count == 0)
         {
             return false;
         }
@@ -1490,14 +1416,8 @@ public class BoardManager : NetworkBehaviour
         bool parentIsCell = targetCell != null;
 
         CardView cardView = Instantiate(cardPrefab, parent);
-        //表裏を反転させる処理
-        if (!state.isFlipped)
-        {             cardView.transform.localRotation = Quaternion.identity;
-        }
-        else
-        {
-            cardView.transform.localRotation = Quaternion.Euler(0f, 180f, 0f);//表向きならカードを表示
-        }
+        // 配置時の向きはプレイヤーがRキーで選んだ状態だけを反映する。
+        CardRotationController.ApplyRotation(cardView.transform, state.rotated);
         RectTransform rectTransform = cardView.GetComponent<RectTransform>();
         if (rectTransform != null)
         {
@@ -1561,6 +1481,7 @@ public class BoardManager : NetworkBehaviour
         dealtCards.OnListChanged -= OnDealtCardsChanged;
         currentPlayerIndex.OnValueChanged -= OnTurnChanged;
         roundNumber.OnValueChanged -= OnTurnChanged;
+        gameEnded.OnValueChanged -= OnGameEndedChanged;
     }
 
     private void OnDestroy()

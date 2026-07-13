@@ -22,7 +22,8 @@ public struct CardState : INetworkSerializable, IEquatable<CardState>
         this.x = x;
         this.y = y;
         this.cardType = cardType;
-        this.isFlipped = false;
+        // ゴールだけは到達するまで裏向き。それ以外のカードは表向きで表示する。
+        this.isFlipped = cardType != CardType.Goal;
         this.rotated = rotated;
         this.ownerClientId = ownerClientId;
         this.isLanternBroken = isLanternBroken; 

@@ -11,6 +11,7 @@ public class DraggableCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
     private CardView cardView;
     private RectTransform rectTransform;
     private bool isDragging;
+    private CardRotationController rotationController;
     private int siblingIndexBeforeDrag;
     private Vector2 anchoredPositionBeforeDrag;
     private PlayerDisplay highlightedPlayerTarget;
@@ -20,6 +21,24 @@ public class DraggableCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
     {
         cardView = GetComponent<CardView>();
         rectTransform = GetComponent<RectTransform>();
+        rotationController = GetComponent<CardRotationController>();
+        if (rotationController == null)
+        {
+            rotationController = gameObject.AddComponent<CardRotationController>();
+        }
+
+        rotationController.Configure(isRotated, CanRotateCard, HandleRotationChanged);
+    }
+
+    private bool CanRotateCard()
+    {
+        return CanUseCard() && !BoardManager.IsActionCard(GetCardType());
+    }
+
+    private void HandleRotationChanged(bool rotated)
+    {
+        isRotated = rotated;
+        BoardManager.Instance?.UpdatePlacementHighlights(GetCardType(), isRotated);
     }
 
     public void OnBeginDrag(PointerEventData eventData)
@@ -42,6 +61,7 @@ public class DraggableCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
         
         GetOrAddCanvasGroup().blocksRaycasts = false;
         isDragging = true;
+        rotationController.SetDragging(true);
 
         if (BoardManager.Instance != null && !BoardManager.IsActionCard(GetCardType()))
         {
@@ -101,6 +121,7 @@ public class DraggableCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
         }
         ClearPlayerTargetHighlight();
         isDragging = false;
+        rotationController.SetDragging(false);
         GetOrAddCanvasGroup().blocksRaycasts = true;
 
         if (BoardManager.IsActionCard(GetCardType()))
@@ -172,7 +193,7 @@ public class DraggableCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
             }
 
             PlayerDisplay playerDisplay = result.gameObject.GetComponentInParent<PlayerDisplay>();
-            if (playerDisplay != null)
+            if (IsValidActionTarget(playerDisplay))
             {
                 return playerDisplay;
             }
@@ -180,6 +201,11 @@ public class DraggableCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
 
         foreach (PlayerDisplay playerDisplay in FindObjectsOfType<PlayerDisplay>())
         {
+            if (!IsValidActionTarget(playerDisplay))
+            {
+                continue;
+            }
+
             RectTransform playerRect = playerDisplay.GetComponent<RectTransform>();
             if (playerRect != null &&
                 RectTransformUtility.RectangleContainsScreenPoint(
@@ -308,6 +334,13 @@ public class DraggableCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
         }
     }
 
+    private bool IsValidActionTarget(PlayerDisplay playerDisplay)
+    {
+        return playerDisplay != null &&
+               BoardManager.Instance != null &&
+               BoardManager.Instance.IsValidLocalActionTarget(GetCardType(), playerDisplay.ClientId);
+    }
+
     private static bool IsPlayerTargetActionCard(CardType cardType)
     {
         return cardType == CardType.Lanternban ||
@@ -336,6 +369,7 @@ public class DraggableCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
     private void ReturnToHand()
     {
         ClearPlayerTargetHighlight();
+        rotationController?.SetDragging(false);
 
         if (pendingPlacementCard == this)
         {

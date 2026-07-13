@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.Serialization;
 
 public class CardView : MonoBehaviour
 {
@@ -8,8 +9,15 @@ public class CardView : MonoBehaviour
 
     [Header("Special Sprites")]
     [SerializeField] private Sprite startCard;
-    [SerializeField] private Sprite goalCard;
-    [SerializeField] private Sprite backSideSprite;
+
+    [Header("Goal Sprites")]
+    [FormerlySerializedAs("backSideSprite")]
+    [SerializeField] private Sprite goalBackSprite;
+    [FormerlySerializedAs("goalCard")]
+    [SerializeField] private Sprite goalGoldSprite;
+    [SerializeField] private Sprite goalEmptyTopSprite;
+    [SerializeField] private Sprite goalEmptyMiddleSprite;
+    [SerializeField] private Sprite goalEmptyBottomSprite;
 
     [Header("Path Sprites")]
     [SerializeField] private Sprite LRdeadend;      // ç∂âEçsÇ´é~Ç‹ÇË
@@ -63,7 +71,7 @@ public class CardView : MonoBehaviour
         if (!isFlipped)
         {
             // ó†ñ ÇÃâÊëúÇï\é¶Ç∑ÇÈ
-            cardArtImage.sprite = backSideSprite;
+            cardArtImage.sprite = goalBackSprite;
             return;
         }
        
@@ -71,6 +79,19 @@ public class CardView : MonoBehaviour
         switch (type)
         {
             case CardType.Start: cardArtImage.sprite = startCard; break;
+            case CardType.GoalGold:
+                cardArtImage.sprite = goalGoldSprite;
+                break;
+            case CardType.GoalEmpty:
+            case CardType.GoalEmptyMiddle:
+                cardArtImage.sprite = goalEmptyMiddleSprite != null ? goalEmptyMiddleSprite : Fallingrocks;
+                break;
+            case CardType.GoalEmptyTop:
+                cardArtImage.sprite = goalEmptyTopSprite != null ? goalEmptyTopSprite : Fallingrocks;
+                break;
+            case CardType.GoalEmptyBottom:
+                cardArtImage.sprite = goalEmptyBottomSprite != null ? goalEmptyBottomSprite : Fallingrocks;
+                break;
             // --- Deadend cards ---
             case CardType.LRdeadend: cardArtImage.sprite = LRdeadend; break;
             case CardType.LDdeadend: cardArtImage.sprite = LDdeadend; break;

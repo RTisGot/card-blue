@@ -20,6 +20,12 @@ public static class CardRules
         {
             // スタートカード
             CardType.Start => PathDirection.Up | PathDirection.Down | PathDirection.Left | PathDirection.Right,
+            CardType.Goal => PathDirection.Up | PathDirection.Down | PathDirection.Left | PathDirection.Right,
+            CardType.GoalGold => PathDirection.Up | PathDirection.Down | PathDirection.Left | PathDirection.Right,
+            CardType.GoalEmpty => PathDirection.Up | PathDirection.Down,
+            CardType.GoalEmptyTop => PathDirection.Down,
+            CardType.GoalEmptyMiddle => PathDirection.Up | PathDirection.Down,
+            CardType.GoalEmptyBottom => PathDirection.Up,
             // L字
             CardType.URload => PathDirection.Up | PathDirection.Right,
             CardType.DLload => PathDirection.Down | PathDirection.Left,

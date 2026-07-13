@@ -44,5 +44,10 @@ public enum CardType
     Railcarrepaire, // トロッコ修理
     Railcarban,     // トロッコ破壊
     Treasuremap,    // 宝の地図
-    Fallingrocks    // 落石
+    Fallingrocks,   // 落石
+    GoalGold,        // 金塊入りゴール（公開後）
+    GoalEmpty,       // 旧ハズレゴール（互換用）
+    GoalEmptyTop,    // 上段のハズレ：下向き
+    GoalEmptyMiddle, // 中段のハズレ：上下向き
+    GoalEmptyBottom  // 下段のハズレ：上向き
 }
