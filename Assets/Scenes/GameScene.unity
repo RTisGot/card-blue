@@ -170,7 +170,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
-  m_RaycastTarget: 1
+  m_RaycastTarget: 0
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
@@ -604,14 +604,15 @@ RectTransform:
   - {fileID: 332044575}
   - {fileID: 1254404526}
   - {fileID: 1299804952}
-  - {fileID: 110203591721405089}
-  - {fileID: 223012102}
   - {fileID: 714190398}
   - {fileID: 1884885111}
-  - {fileID: 944362748}
   - {fileID: 192462161}
   - {fileID: 596831678}
   - {fileID: 641802372}
+  - {fileID: 110203591721405089}
+  - {fileID: 223012102}
+  - {fileID: 944362748}
+  - {fileID: 869670467}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
@@ -637,7 +638,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &583965629
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -712,8 +713,7 @@ RectTransform:
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 0, y: 0, z: 0}
   m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 869670467}
+  m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
@@ -738,7 +738,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &596831678
 RectTransform:
   m_ObjectHideFlags: 0
@@ -995,7 +995,7 @@ RectTransform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 583965632}
+  m_Father: {fileID: 579876597}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0}
   m_AnchorMax: {x: 0.5, y: 0}
@@ -1154,6 +1154,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BoardManager
   ShowTopMostFoldoutHeaderGroup: 1
   startCardRoot: {fileID: 192462161}
+  startCardX: 1
+  startCardY: 3
   boardRoot: {fileID: 944362748}
   cardPrefab: {fileID: 1415219117786675406}
   cellSize: 120
@@ -1514,7 +1516,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &1855770986
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1727,15 +1729,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5330460520427645365, guid: a3c287591faaf2d41830f031c16e76af, type: 3}
       propertyPath: m_Color.a
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 5330460520427645365, guid: a3c287591faaf2d41830f031c16e76af, type: 3}
       propertyPath: m_Color.b
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5330460520427645365, guid: a3c287591faaf2d41830f031c16e76af, type: 3}
       propertyPath: m_Color.g
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5330460520427645365, guid: a3c287591faaf2d41830f031c16e76af, type: 3}
       propertyPath: m_Color.r
@@ -2090,6 +2092,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1f392d1075d86724ea019f11e904c01e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DraggableCard
+  cardType: 0
+  isRotated: 0
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

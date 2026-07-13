@@ -129,9 +129,11 @@ public class BoardManager : NetworkBehaviour
         // ビューの初期化
         StartCoroutine(RegisterLocalPlayerWhenReady());
         RebuildBoardView();
+        StartCoroutine(RebuildBoardViewAfterCellsReady());
         RefreshPlayerList();
         RefreshLocalHand();
         RefreshTurnUI();
+        RefreshPlacementHighlights();
     }
 
     // --- プレイヤー管理ロジック ---
@@ -342,6 +344,7 @@ public class BoardManager : NetworkBehaviour
     {
         RefreshPlayerList();
         RefreshTurnUI();
+        RefreshPlacementHighlights();
     }
 
     private void RefreshPlayerList()
@@ -503,10 +506,16 @@ public class BoardManager : NetworkBehaviour
     }
 
 
-    public void TryPlaceCardFromUI(int x, int y, CardType cardtype, bool rotated)
+    public bool TryPlaceCardFromUI(int x, int y, CardType cardtype, bool rotated)
     {
+        if (!CanPlaceCardFromUI(x, y, cardtype, rotated))
+        {
+            return false;
+        }
+
         // クライアントが勝手に動かすのではなく、サーバーに処理を依頼する
         RequestPlaceCardServerRpc(x, y, cardtype, rotated);
+        return true;
     }
 
     public bool CanPlaceCardFromUI(int x, int y, CardType cardType, bool rotated)
@@ -526,6 +535,19 @@ public class BoardManager : NetworkBehaviour
         RefreshPlacementHighlights();
     }
 
+    public void UpdatePlacementHighlights(CardType cardType, bool rotated)
+    {
+        if (placementHighlightsVisible && highlightedCardType == cardType && highlightedCardRotated == rotated)
+        {
+            return;
+        }
+
+        placementHighlightsVisible = true;
+        highlightedCardType = cardType;
+        highlightedCardRotated = rotated;
+        RefreshPlacementHighlights();
+    }
+
     private void RefreshPlacementHighlights()
     {
         bool shouldShow = placementHighlightsVisible
@@ -534,10 +556,12 @@ public class BoardManager : NetworkBehaviour
 
         int highlightedCount = 0;
         List<CellComponent> cells = GetBoardCells();
+
         foreach (CellComponent cell in cells)
         {
             bool canPlace = shouldShow
                 && CanPlaceCardFromUI(cell.x, cell.y, highlightedCardType, highlightedCardRotated);
+
             if (canPlace)
             {
                 highlightedCount++;
@@ -548,6 +572,7 @@ public class BoardManager : NetworkBehaviour
 
         Debug.Log($"[Debug] Highlight cells: {highlightedCount}/{cells.Count}, card: {highlightedCardType}");
     }
+
 
     public void ClearPlacementHighlights()
     {
@@ -583,19 +608,28 @@ public class BoardManager : NetworkBehaviour
     [ServerRpc(RequireOwnership = false)]
     private void RequestPlaceCardServerRpc(int x, int y, CardType cardType, bool rotated, ServerRpcParams rpcParams = default)
     {
+
         ulong senderClientId = rpcParams.Receive.SenderClientId;
         if (!CanAct(senderClientId) || !IsTerrainCard(cardType) || !HasCardInHand(senderClientId, cardType))
         {
+            // どの条件で失敗したか特定するログに書き換える
+            Debug.Log($"配置失敗: CanAct={CanAct(senderClientId)}, IsTerrain={IsTerrainCard(cardType)}, HasCard={HasCardInHand(senderClientId, cardType)}");
+            RejectPlaceCardClientRpc(CreateTargetClientRpcParams(senderClientId));
             return;
         }
+        
+        
 
+       
         Vector2Int position = new Vector2Int(x, y);
 
         if (!CanPlaceCard(position, cardType, rotated))
         {
+            Debug.Log("配置失敗: 配置ルールを満たしていません");
+            RejectPlaceCardClientRpc(CreateTargetClientRpcParams(senderClientId));
             return;
         }
-
+       
         RemoveCardFromHand(senderClientId, cardType); //手札からカードを削除
         //盤面にカードを追加
         placedCards.Add(new CardState(
@@ -606,6 +640,23 @@ public class BoardManager : NetworkBehaviour
             senderClientId));
         DrawCard(senderClientId);
         AdvanceTurn();
+    }
+
+    [ClientRpc]
+    private void RejectPlaceCardClientRpc(ClientRpcParams clientRpcParams = default)
+    {
+        DraggableCard.ReturnPendingPlacementToHand();
+    }
+
+    private ClientRpcParams CreateTargetClientRpcParams(ulong clientId)
+    {
+        return new ClientRpcParams
+        {
+            Send = new ClientRpcSendParams
+            {
+                TargetClientIds = new[] { clientId }
+            }
+        };
     }
     public void ExecutePlacementOnServer(int x, int y, CardType cardType, bool rotated)
     {
@@ -637,12 +688,19 @@ public class BoardManager : NetworkBehaviour
         {
             netObj.transform.localPosition = Vector3.zero;
             netObj.transform.localScale = Vector3.one;
+
+            RectTransform cardRect = netObj.GetComponent<RectTransform>();
+            if (cardRect != null)
+            {
+                MatchCardSizeToCell(cardRect, x, y);
+            }
         }
     }
     //アクションカードをプレイする処理
     [ServerRpc(RequireOwnership = false)]
     private void RequestPlayActionCardServerRpc(CardType cardType, ServerRpcParams rpcParams = default)
     {
+
         ulong senderClientId = rpcParams.Receive.SenderClientId;
         if (!CanAct(senderClientId) || !IsActionCard(cardType) || !HasCardInHand(senderClientId, cardType))
         {
@@ -684,9 +742,22 @@ public class BoardManager : NetworkBehaviour
     //指定された位置にカードを置けるかを確認する
     private bool CanPlaceCard(Vector2Int position, CardType cardType, bool rotated)
     {
-       
+        Debug.Log($"[CheckPos] 配置しようとしている座標: ({position.x}, {position.y})");
+
+        // 現在の盤面リストの中身をすべて表示
+        foreach (var card in placedCards)
+        {
+            Debug.Log($"[CheckList] 盤面にあるカード: Type={card.cardType}, Pos=({card.x}, {card.y})");
+        }
+        if (placedCards.Count == 0)
+        {
+            Debug.Log("[PlacementTest] 初手配置許可");
+            return true;
+        }
+
         if (HasCardAt(position)) //カードが置かれているか
         {
+            Debug.Log("失敗: 既にカードがあります");
             return false;
         }
 
@@ -696,22 +767,28 @@ public class BoardManager : NetworkBehaviour
                         || HasCardAt(position + Vector2Int.left)
                         || HasCardAt(position + Vector2Int.right);
 
-        if (!hasNeighbor) return false;
+        if (!hasNeighbor) { Debug.Log("失敗: 隣接するカードがありません"); return false; }
 
-        return CardRules.CanPlaceCard(position, cardType, rotated, placedCards)
-            && ConnectsToStart(position, cardType, rotated);
+        // ここで詳細に分ける
+        bool ruleOk = CardRules.CanPlaceCard(position, cardType, rotated, placedCards);
+        bool connectOk = ConnectsToStart(position, cardType, rotated);
+
+        if (!ruleOk) { Debug.Log("失敗: 道路の接続ルールに違反しています"); return false; }
+
+        return true;
+        /*return CardRules.CanPlaceCard(position, cardType, rotated, placedCards)
+            && ConnectsToStart(position, cardType, rotated);*/
     }
 
     private bool HasCardAt(Vector2Int position)
     {
-        for (int i = 0; i < placedCards.Count; i++)
+        foreach (var card in placedCards)
         {
-            if (placedCards[i].x == position.x && placedCards[i].y == position.y)
+            if (card.x == position.x && card.y == position.y)
             {
                 return true;
             }
         }
-
         return false;
     }
 
@@ -1020,10 +1097,21 @@ public class BoardManager : NetworkBehaviour
         }
     }
 
-    private static bool IsTerrainCard(CardType cardType)
+    private bool IsTerrainCard(CardType cardType)
     {
-        return cardType != CardType.Start && !IsActionCard(cardType);
+        // Startも地形カードに含める
+        if (cardType == CardType.Start) return true;
+
+        // "Action" で始まる名前（ActionRepairなど）以外をすべて許可する
+        string name = cardType.ToString();
+        bool isAction = name.StartsWith("Action");
+
+        // デバッグログを追加して判定を可視化する
+        Debug.Log($"[Check] Card: {cardType}, IsAction: {isAction}");
+
+        return !isAction;
     }
+
 
     //カードが盤面に置かれたらビューを更新する
     private void OnPlacedCardsChanged(NetworkListEvent<CardState> changeEvent)
@@ -1056,10 +1144,17 @@ public class BoardManager : NetworkBehaviour
             SpawnCardView(placedCards[i]);
         }
     }
+
+    private IEnumerator RebuildBoardViewAfterCellsReady()
+    {
+        yield return null;
+        RebuildBoardView();
+        RefreshPlacementHighlights();
+    }
     //カードの表示を生成する
     private void SpawnCardView(CardState state)
     {
-        if (boardRoot == null || cardPrefab == null)
+        if (cardPrefab == null)
         {
             return;
         }
@@ -1070,21 +1165,29 @@ public class BoardManager : NetworkBehaviour
             return;
         }
 
-        Transform parent = state.cardType == CardType.Start && startCardRoot != null
-            ? startCardRoot
+        CellComponent targetCell = GetCellAt(state.x, state.y);
+        Transform parent = targetCell != null
+            ? targetCell.transform
             : boardRoot;
+        if (parent == null)
+        {
+            return;
+        }
+
+        bool parentIsCell = targetCell != null;
 
         CardView cardView = Instantiate(cardPrefab, parent);
         RectTransform rectTransform = cardView.GetComponent<RectTransform>();
         if (rectTransform != null)
         {
-            rectTransform.anchoredPosition = state.cardType == CardType.Start
+            rectTransform.anchoredPosition = parentIsCell
                 ? Vector2.zero
                 : new Vector2(state.x * cellSize, state.y * cellSize);
+            MatchCardSizeToCell(rectTransform, state.x, state.y);
         }
         else
         {
-            cardView.transform.localPosition = state.cardType == CardType.Start
+            cardView.transform.localPosition = parentIsCell
                 ? Vector3.zero
                 : new Vector3(state.x * cellSize, state.y * cellSize, 0f);
         }
@@ -1093,6 +1196,30 @@ public class BoardManager : NetworkBehaviour
         spawnedCards.Add(position, cardView);
     }
 
+    private void MatchCardSizeToCell(RectTransform cardRect, int x, int y)
+    {
+        RectTransform targetRect = null;
+        CellComponent cell = GetCellAt(x, y);
+        if (cell != null)
+        {
+            targetRect = cell.GetComponent<RectTransform>();
+        }
+
+        if (targetRect == null && x == startCardX && y == startCardY && startCardRoot != null)
+        {
+            targetRect = startCardRoot.GetComponent<RectTransform>();
+        }
+
+        Vector2 targetSize = targetRect != null
+            ? targetRect.rect.size
+            : new Vector2(cellSize, cellSize);
+
+        cardRect.anchorMin = new Vector2(0.5f, 0.5f);
+        cardRect.anchorMax = new Vector2(0.5f, 0.5f);
+        cardRect.pivot = new Vector2(0.5f, 0.5f);
+        cardRect.sizeDelta = targetSize;
+        cardRect.localScale = Vector3.one;
+    }
     //ネットワーク終了時のイベント解除
     public override void OnNetworkDespawn()
     {

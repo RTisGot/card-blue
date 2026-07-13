@@ -120,10 +120,18 @@ public static class CardRules
 
     private static bool IsConnected(PathDirection aPaths, PathDirection aDir, PathDirection bPaths, PathDirection bDir)
     {
-        bool aHasPath = (aPaths & aDir) != 0;
+        /*bool aHasPath = (aPaths & aDir) != 0;
         bool bHasPath = (bPaths & bDir) != 0;
         // Both sides must agree: road to road, wall to wall.
-        return aHasPath == bHasPath;
+        return aHasPath == bHasPath;*/
+        bool aHasPath = (aPaths & aDir) != 0;
+        bool bHasPath = (bPaths & bDir) != 0;
+
+        // 「片方に道があり、もう片方にない」という矛盾（道が壁に突き当たっている状態）のみ拒否する
+        if (aHasPath != bHasPath) return false;
+
+        // それ以外（道同士、または壁同士）はOK
+        return true;
     }
 
     private static bool HasRoadConnection(PathDirection aPaths, PathDirection aDir, PathDirection bPaths, PathDirection bDir)
