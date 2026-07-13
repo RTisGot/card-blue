@@ -223,8 +223,8 @@ public class CardGameManager : NetworkBehaviour
             // プレハブからカードUIを生成
             GameObject cardObj = Instantiate(cardPrefab, handLayoutGroup);
             // 生成したカードに種類をセット
-            CardState state = new CardState(0, 0, type, false, NetworkManager.Singleton.LocalClientId,false);
-            cardObj.GetComponent<CardView>().SetCard(type);
+            CardState state = new CardState(0, 0, type, false, NetworkManager.Singleton.LocalClientId,false, false, false);
+            cardObj.GetComponent<CardView>().SetCard(type,state.isFlipped);
         }
     }
 

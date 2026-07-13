@@ -1,6 +1,7 @@
 public enum CardType
 {
     Start,
+    Goal,
     PathStraight,
     PathCorner,
     PathTJunction,

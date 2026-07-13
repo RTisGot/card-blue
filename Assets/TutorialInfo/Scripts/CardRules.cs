@@ -18,32 +18,39 @@ public static class CardRules
     {
         return type switch
         {
+            // スタートカード
             CardType.Start => PathDirection.Up | PathDirection.Down | PathDirection.Left | PathDirection.Right,
-            CardType.PathStraight => PathDirection.Up | PathDirection.Down,
-            CardType.PathCorner => PathDirection.Up | PathDirection.Right,
-            CardType.PathTJunction => PathDirection.Up | PathDirection.Down | PathDirection.Right,
-            CardType.PathCross => PathDirection.Up | PathDirection.Down | PathDirection.Left | PathDirection.Right,
-            CardType.DeadEnd => PathDirection.Up,
-            CardType.LRdeadend => PathDirection.Left | PathDirection.Right,
-            CardType.LDdeadend => PathDirection.Left | PathDirection.Down,
-            CardType.UDLRdeadend => PathDirection.Up | PathDirection.Down | PathDirection.Left | PathDirection.Right,
-            CardType.UDLdeadend => PathDirection.Up | PathDirection.Down | PathDirection.Left,
-            CardType.RDdeadend => PathDirection.Right | PathDirection.Down,
-            CardType.Ldeadend => PathDirection.Left,
-            CardType.Udeadend => PathDirection.Up,
-            CardType.UDdeadend => PathDirection.Up | PathDirection.Down,
-            CardType.ULRdeadend => PathDirection.Up | PathDirection.Left | PathDirection.Right,
-            CardType.UDLload => PathDirection.Up | PathDirection.Down | PathDirection.Left,
-            CardType.DRload => PathDirection.Down | PathDirection.Right,
+            // L字
             CardType.URload => PathDirection.Up | PathDirection.Right,
             CardType.DLload => PathDirection.Down | PathDirection.Left,
+            CardType.DRload => PathDirection.Down | PathDirection.Right,
             CardType.ULload => PathDirection.Up | PathDirection.Left,
-            CardType.UDload => PathDirection.Up | PathDirection.Down,
-            CardType.UDRload => PathDirection.Up | PathDirection.Down | PathDirection.Right,
+            //T字
             CardType.DLRload => PathDirection.Down | PathDirection.Left | PathDirection.Right,
             CardType.ULRload => PathDirection.Up | PathDirection.Left | PathDirection.Right,
-            CardType.LRload => PathDirection.Left | PathDirection.Right,
+            CardType.UDRload => PathDirection.Up | PathDirection.Down | PathDirection.Right,
+            CardType.UDLload => PathDirection.Up | PathDirection.Down | PathDirection.Left,
+            // 十字路・直線
             CardType.UDLRload => PathDirection.Up | PathDirection.Down | PathDirection.Left | PathDirection.Right,
+            CardType.LRload => PathDirection.Left | PathDirection.Right,
+            CardType.UDload => PathDirection.Up | PathDirection.Down,
+            // 行き止まり
+            CardType.UDLdeadend => PathDirection.Up | PathDirection.Down | PathDirection.Left,
+            CardType.ULRdeadend => PathDirection.Up | PathDirection.Left | PathDirection.Right,
+            CardType.RDdeadend => PathDirection.Right | PathDirection.Down,
+            CardType.LDdeadend => PathDirection.Left | PathDirection.Down,
+            CardType.LRdeadend => PathDirection.Left | PathDirection.Right,
+            CardType.Ldeadend => PathDirection.Left,
+            CardType.UDdeadend => PathDirection.Up | PathDirection.Down,
+            CardType.Udeadend => PathDirection.Up,
+            CardType.UDLRdeadend => PathDirection.Up | PathDirection.Down | PathDirection.Left | PathDirection.Right,
+            
+            //CardType.PathStraight => PathDirection.Up | PathDirection.Down,
+            //CardType.PathCorner => PathDirection.Up | PathDirection.Right,
+            //CardType.PathTJunction => PathDirection.Up | PathDirection.Down | PathDirection.Right,
+            //CardType.PathCross => PathDirection.Up | PathDirection.Down | PathDirection.Left | PathDirection.Right,
+            //CardType.DeadEnd => PathDirection.Up,
+            
             _ => PathDirection.None 
         };
     }

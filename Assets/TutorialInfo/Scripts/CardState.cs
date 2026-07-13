@@ -11,21 +11,23 @@ public struct CardState : INetworkSerializable, IEquatable<CardState>
 
     public CardType cardType;
     public bool rotated;
+    public bool isFlipped; // カードが裏返しになっているかどうかを示すフラグ
     public ulong ownerClientId;
     public bool isLanternBroken; // 
     public bool isPickaxeBroken; // 
     public bool isRailcarBroken; //
 
-    public CardState(int x, int y, CardType cardType, bool rotated, ulong ownerClientId, bool isLanternBroken)
+    public CardState(int x, int y, CardType cardType, bool rotated, ulong ownerClientId, bool isLanternBroken, bool isPickaxeBroken, bool isRailcarBroken)
     {
         this.x = x;
         this.y = y;
         this.cardType = cardType;
+        this.isFlipped = false;
         this.rotated = rotated;
         this.ownerClientId = ownerClientId;
         this.isLanternBroken = isLanternBroken; 
-        this.isPickaxeBroken = false;
-        this.isRailcarBroken = false;
+        this.isPickaxeBroken = isPickaxeBroken;
+        this.isRailcarBroken = isRailcarBroken;
     }
 
     public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
@@ -36,7 +38,7 @@ public struct CardState : INetworkSerializable, IEquatable<CardState>
         int tempCardType = (int)cardType;
         serializer.SerializeValue(ref tempCardType);
         cardType = (CardType)tempCardType;
-
+        serializer.SerializeValue(ref isFlipped);
         serializer.SerializeValue(ref rotated);
         serializer.SerializeValue(ref ownerClientId);
         serializer.SerializeValue(ref isLanternBroken);
@@ -51,6 +53,7 @@ public struct CardState : INetworkSerializable, IEquatable<CardState>
             && y == other.y
             && cardType == other.cardType
             && rotated == other.rotated
+            && isFlipped == other.isFlipped
             && ownerClientId == other.ownerClientId
             && isLanternBroken == other.isLanternBroken
             && isPickaxeBroken == other.isPickaxeBroken

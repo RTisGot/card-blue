@@ -671,6 +671,7 @@ RectTransform:
   - {fileID: 714190398}
   - {fileID: 1884885111}
   - {fileID: 192462161}
+  - {fileID: 1865047938}
   - {fileID: 641802372}
   - {fileID: 110203591721405089}
   - {fileID: 223012102}
@@ -1145,6 +1146,13 @@ MonoBehaviour:
   startCardRoot: {fileID: 192462161}
   startCardX: 1
   startCardY: 3
+  goalCardRoots:
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  goalCardRoot: {fileID: 1865047938}
+  goalCardX: 8
+  goalCardY: 3
   boardRoot: {fileID: 944362748}
   cardPrefab: {fileID: 1415219117786675406}
   cellSize: 120
@@ -1330,6 +1338,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerDisplay
   ShowTopMostFoldoutHeaderGroup: 1
   nameText: {fileID: 0}
+  backgroundImage: {fileID: 0}
+  normalColor: {r: 1, g: 1, b: 1, a: 0.08}
+  currentTurnColor: {r: 1, g: 0.84, b: 0.29, a: 0.25}
+  dragTargetColor: {r: 1, g: 0.93, b: 0.25, a: 0.52}
 --- !u!114 &1276412563 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 3452983350397122665, guid: 98aab64553f84c74bbcff20ab7fe93ec, type: 3}
@@ -1630,6 +1642,41 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0, y: 0}
+--- !u!1 &1865047937
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1865047938}
+  m_Layer: 5
+  m_Name: GoalRoot
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &1865047938
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1865047937}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 579876597}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: 600, y: 200}
+  m_SizeDelta: {x: 100, y: 100}
+  m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &1884885110
 GameObject:
   m_ObjectHideFlags: 0
@@ -1960,6 +2007,10 @@ PrefabInstance:
       propertyPath: UDRload
       value: 
       objectReference: {fileID: 21300000, guid: 5050e7a5e82a3ff47a81ec5934ac7b9d, type: 3}
+    - target: {fileID: 3218219355869854588, guid: b5532de47e2f30a44bc0dc145f2fe4b0, type: 3}
+      propertyPath: goalCard
+      value: 
+      objectReference: {fileID: 21300000, guid: c53f6b3e98c727142b6a314d453136ed, type: 3}
     - target: {fileID: 3218219355869854588, guid: b5532de47e2f30a44bc0dc145f2fe4b0, type: 3}
       propertyPath: UDdeadend
       value: 

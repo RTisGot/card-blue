@@ -8,6 +8,8 @@ public class CardView : MonoBehaviour
 
     [Header("Special Sprites")]
     [SerializeField] private Sprite startCard;
+    [SerializeField] private Sprite goalCard;
+    [SerializeField] private Sprite backSideSprite;
 
     [Header("Path Sprites")]
     [SerializeField] private Sprite LRdeadend;      // ¶‰Es‚«~‚Ü‚è
@@ -43,7 +45,7 @@ public class CardView : MonoBehaviour
     [SerializeField] private Sprite treasuremap;
     [SerializeField] private Sprite Fallingrocks;
 
-    public void SetCard(CardType type)
+    public void SetCard(CardType type, bool isFlipped)
     {
         CardType = type;
 
@@ -57,6 +59,14 @@ public class CardView : MonoBehaviour
             Debug.LogWarning("CardView has no Image assigned: " + name);
             return;
         }
+
+        if (!isFlipped)
+        {
+            // — –Ê‚Ì‰æ‘œ‚ğ•\¦‚·‚é
+            cardArtImage.sprite = backSideSprite;
+            return;
+        }
+       
 
         switch (type)
         {
