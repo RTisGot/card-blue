@@ -13,10 +13,7 @@ public class DraggableCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
     private bool isDragging;
     private int siblingIndexBeforeDrag;
     private Vector2 anchoredPositionBeforeDrag;
-<<<<<<< HEAD
-=======
     private PlayerDisplay highlightedPlayerTarget;
->>>>>>> 63555e21181d2856b902c253c3fd510d7090ade0
     private static DraggableCard pendingPlacementCard;
 
     private void Awake()
@@ -50,13 +47,10 @@ public class DraggableCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
         {
             Debug.Log("ハイライトを呼び出します");
             BoardManager.Instance.ShowPlacementHighlights(GetCardType(), isRotated);
-<<<<<<< HEAD
-=======
         }
         else if (BoardManager.Instance != null && IsPlayerTargetActionCard(GetCardType()))
         {
             UpdatePlayerTargetHighlight(eventData);
->>>>>>> 63555e21181d2856b902c253c3fd510d7090ade0
         }
     }
 
@@ -85,13 +79,10 @@ public class DraggableCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
         {
             BoardManager.Instance.UpdatePlacementHighlights(GetCardType(), isRotated);
         }
-<<<<<<< HEAD
-=======
         else if (BoardManager.Instance != null && IsPlayerTargetActionCard(GetCardType()))
         {
             UpdatePlayerTargetHighlight(eventData);
         }
->>>>>>> 63555e21181d2856b902c253c3fd510d7090ade0
     }
 
     //カードのドロップ処理
@@ -108,35 +99,6 @@ public class DraggableCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
         {
             Debug.Log("[Debug] 何にも当たっていません");
         }
-<<<<<<< HEAD
-        isDragging = false;
-        GetOrAddCanvasGroup().blocksRaycasts = true;
-
-        // 1. ドロップ先の CellComponent を安全に取得
-        // (Raycastで当たったオブジェクトから取得を試みる)
-        CellComponent cell = GetCellAtPointer(eventData);
-
-        // 2. セル上にドロップできたか判定
-        if (cell != null)
-        {
-            Debug.Log($"[Client] ドロップ成功: {cell.x}, {cell.y}");
-
-            // サーバーへの依頼 (BoardManager.Instance を使用)
-            bool placeRequested = BoardManager.Instance.TryPlaceCardFromUI(cell.x, cell.y, GetCardType(), this.isRotated);
-
-            // 配置のハイライトを消す
-            BoardManager.Instance.ClearPlacementHighlights();
-            if (placeRequested)
-            {
-                pendingPlacementCard = this;
-                return;
-            }
-
-            Debug.Log("[Log] 配置できないセルです。手札に戻します。");
-            ReturnToHand();
-            return;
-        }
-=======
         ClearPlayerTargetHighlight();
         isDragging = false;
         GetOrAddCanvasGroup().blocksRaycasts = true;
@@ -182,7 +144,6 @@ public class DraggableCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
             ReturnToHand();
             return;
         }
->>>>>>> 63555e21181d2856b902c253c3fd510d7090ade0
 
         // 3. セル以外（手札など）にドロップされた場合
         Debug.Log("[Log] セル以外にドロップされました。手札に戻します。");
@@ -201,9 +162,6 @@ public class DraggableCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
         RaycastResult result = GetFirstRaycastResultAtPointer(eventData);
         return result.gameObject;
     }
-<<<<<<< HEAD
-
-=======
     private PlayerDisplay GetPlayerDisplayAtPointer(PointerEventData eventData)
     {
         foreach (RaycastResult result in GetRaycastResultsAtPointer(eventData))
@@ -235,7 +193,6 @@ public class DraggableCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
 
         return null;
     }
->>>>>>> 63555e21181d2856b902c253c3fd510d7090ade0
     private CellComponent GetCellAtPointer(PointerEventData eventData)
     {
         foreach (RaycastResult result in GetRaycastResultsAtPointer(eventData))
@@ -378,11 +335,8 @@ public class DraggableCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
 
     private void ReturnToHand()
     {
-<<<<<<< HEAD
-=======
         ClearPlayerTargetHighlight();
 
->>>>>>> 63555e21181d2856b902c253c3fd510d7090ade0
         if (pendingPlacementCard == this)
         {
             pendingPlacementCard = null;

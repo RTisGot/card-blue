@@ -510,7 +510,7 @@ public class BoardManager : NetworkBehaviour
             layoutElement.flexibleHeight = 0f;
 
             // カード設定
-            card.SetCard(dealtCards[i].cardType, state.isFlipped);
+            card.SetCard(dealtCards[i].cardType, true);
 
             // 通常の手札エリアにあるカードだけをインタラクティブにする
             bool isInteractable = (parentContainer == handRoot) && isLocalTurn;
@@ -884,17 +884,8 @@ public class BoardManager : NetworkBehaviour
 
     private bool IsRoadCard(CardType cardType)
     {
-<<<<<<< HEAD
-        return cardType == CardType.PathStraight  ||
-               cardType == CardType.PathCorner    ||
-=======
-<<<<<<< HEAD
-        Debug.Log($"[CheckPos] 配置しようとしている座標: ({position.x}, {position.y})");
-
-=======
         return cardType == CardType.PathStraight ||
                cardType == CardType.PathCorner ||
->>>>>>> 51690a8d3d85523347ea039ce01eeb2d8fcc96ea
                cardType == CardType.PathTJunction ||
                cardType == CardType.PathCross     ||
                cardType == CardType.DeadEnd       ||
@@ -1469,10 +1460,7 @@ public class BoardManager : NetworkBehaviour
     {
         yield return null;
         RebuildBoardView();
-<<<<<<< HEAD
-=======
         RefreshPlayerList();
->>>>>>> 63555e21181d2856b902c253c3fd510d7090ade0
         RefreshPlacementHighlights();
     }
 
