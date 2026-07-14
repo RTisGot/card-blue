@@ -1229,6 +1229,7 @@ MonoBehaviour:
   goalCardRoot: {fileID: 1865047938}
   goalCardX: 8
   goalCardY: 3
+  goalVerticalSpacing: 2
   boardRoot: {fileID: 944362748}
   cardPrefab: {fileID: 1415219117786675406}
   cellSize: 120
@@ -2095,6 +2096,38 @@ PrefabInstance:
       propertyPath: cardArtImage
       value: 
       objectReference: {fileID: 5188160218178999142}
+    - target: {fileID: 3218219355869854588, guid: b5532de47e2f30a44bc0dc145f2fe4b0, type: 3}
+      propertyPath: Lanternrepaire
+      value: 
+      objectReference: {fileID: 21300000, guid: b8aa63e4aea54384297dcc0ca89bb3e9, type: 3}
+    - target: {fileID: 3218219355869854588, guid: b5532de47e2f30a44bc0dc145f2fe4b0, type: 3}
+      propertyPath: Pickaxerepaire
+      value: 
+      objectReference: {fileID: 21300000, guid: 67b483ae0ca55704383ef920e4f3066a, type: 3}
+    - target: {fileID: 3218219355869854588, guid: b5532de47e2f30a44bc0dc145f2fe4b0, type: 3}
+      propertyPath: goalBackSprite
+      value: 
+      objectReference: {fileID: 21300000, guid: c53f6b3e98c727142b6a314d453136ed, type: 3}
+    - target: {fileID: 3218219355869854588, guid: b5532de47e2f30a44bc0dc145f2fe4b0, type: 3}
+      propertyPath: goalGoldSprite
+      value: 
+      objectReference: {fileID: 21300000, guid: 89bf1169f2c06074dadc5a162df025d8, type: 3}
+    - target: {fileID: 3218219355869854588, guid: b5532de47e2f30a44bc0dc145f2fe4b0, type: 3}
+      propertyPath: railcarrepaire
+      value: 
+      objectReference: {fileID: 21300000, guid: 5aec05d2ce652c94da20a19eb9d77aa2, type: 3}
+    - target: {fileID: 3218219355869854588, guid: b5532de47e2f30a44bc0dc145f2fe4b0, type: 3}
+      propertyPath: goalEmptyTopSprite
+      value: 
+      objectReference: {fileID: 21300000, guid: 939614b5beb20664aa4b93d4b639650a, type: 3}
+    - target: {fileID: 3218219355869854588, guid: b5532de47e2f30a44bc0dc145f2fe4b0, type: 3}
+      propertyPath: goalEmptyBottomSprite
+      value: 
+      objectReference: {fileID: 21300000, guid: 6cc5c5b25cef30c4e9fe3f4a4bb45c39, type: 3}
+    - target: {fileID: 3218219355869854588, guid: b5532de47e2f30a44bc0dc145f2fe4b0, type: 3}
+      propertyPath: goalEmptyMiddleSprite
+      value: 
+      objectReference: {fileID: 21300000, guid: dd2e12e2cda80384783ab05317bb8851, type: 3}
     - target: {fileID: 5982137987157967292, guid: b5532de47e2f30a44bc0dc145f2fe4b0, type: 3}
       propertyPath: m_Sprite
       value: 

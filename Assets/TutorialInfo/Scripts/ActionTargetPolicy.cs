@@ -4,6 +4,7 @@
 /// </summary>
 public sealed class ActionTargetPolicy
 {
+    //自分以外を対象にするカードの種類を判定する
     public bool IsValidTarget(CardType cardType, ulong senderClientId, ulong targetClientId)
     {
         return !RequiresOtherPlayer(cardType) || senderClientId != targetClientId;
