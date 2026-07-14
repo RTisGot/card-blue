@@ -2,8 +2,9 @@ using UnityEngine;
 using TMPro;
 using Unity.Netcode;
 using UnityEngine.UI;
+using UnityEngine.EventSystems;
 
-public class PlayerDisplay : NetworkBehaviour
+public class PlayerDisplay : NetworkBehaviour, IPointerClickHandler
 {
     [SerializeField] private TMP_Text nameText;
     [SerializeField] private Image backgroundImage;
@@ -73,6 +74,14 @@ public class PlayerDisplay : NetworkBehaviour
         }
     }
 
+    public void OnPointerClick(PointerEventData eventData)
+    {
+        if (eventData.button == PointerEventData.InputButton.Left)
+        {
+            BoardManager.Instance?.TrySelectPendingActionTarget(ClientId);
+        }
+    }
+
     public void SetDragTargetHighlighted(bool highlighted)
     {
         if (isDragTarget == highlighted)
@@ -115,7 +124,7 @@ public class PlayerDisplay : NetworkBehaviour
 
         if (isPickaxeBroken)
         {
-            iconLine += "<color=#B8E0FF>⛏</color> ";
+            iconLine += "<color=#B8E0FF>⛁E/color> ";
         }
 
         if (isRailcarBroken)

@@ -89,6 +89,8 @@ public class BoardManager : NetworkBehaviour
     private bool placementHighlightsVisible;
     private CardType highlightedCardType;
     private bool highlightedCardRotated;
+    private bool actionTargetSelectionActive;
+    private CardType pendingTargetActionCard;
     public static BoardManager Instance;
 
 
@@ -414,6 +416,8 @@ public class BoardManager : NetworkBehaviour
                 spawnedPlayerDisplays.Add(display);
             }
         }
+
+        RefreshActionTargetSelectionHighlights();
     }
 
     //手札の状態を更新する
@@ -613,6 +617,11 @@ public class BoardManager : NetworkBehaviour
             return false;
         }
 
+        if (actionTargetPolicy.RequiresOtherPlayer(cardType))
+        {
+            return BeginActionTargetSelection(cardType);
+        }
+
         ulong localClientId = NetworkManager.Singleton.LocalClientId;
         return TryPlayActionCardFromUI(cardType, localClientId);
     }
@@ -627,6 +636,7 @@ public class BoardManager : NetworkBehaviour
             return false;
         }
 
+        ClearActionTargetSelection();
         RequestPlayActionCardServerRpc(cardType, targetClientId);
         return true;
     }
@@ -644,9 +654,88 @@ public class BoardManager : NetworkBehaviour
             targetClientId);
     }
 
-    public void TryDiscardAndDrawFromUI(CardType cardType)
+    private bool BeginActionTargetSelection(CardType cardType)
     {
+        if (NetworkManager.Singleton == null ||
+            !IsLocalPlayerTurn() ||
+            !IsActionCard(cardType) ||
+            !HasCardInHand(NetworkManager.Singleton.LocalClientId, cardType))
+        {
+            return false;
+        }
+
+        bool hasCandidate = false;
+        for (int i = 0; i < players.Count; i++)
+        {
+            if (IsValidLocalActionTarget(cardType, players[i].clientId))
+            {
+                hasCandidate = true;
+                break;
+            }
+        }
+
+        if (!hasCandidate)
+        {
+            return false;
+        }
+
+        pendingTargetActionCard = cardType;
+        actionTargetSelectionActive = true;
+        RefreshActionTargetSelectionHighlights();
+        RefreshTurnUI();
+        return true;
+    }
+
+    public bool TrySelectPendingActionTarget(ulong targetClientId)
+    {
+        if (!actionTargetSelectionActive ||
+            !IsValidLocalActionTarget(pendingTargetActionCard, targetClientId))
+        {
+            return false;
+        }
+
+        return TryPlayActionCardFromUI(pendingTargetActionCard, targetClientId);
+    }
+
+    private void ClearActionTargetSelection(bool refreshTurnText = true)
+    {
+        if (!actionTargetSelectionActive)
+        {
+            return;
+        }
+
+        actionTargetSelectionActive = false;
+        RefreshActionTargetSelectionHighlights();
+        if (refreshTurnText)
+        {
+            RefreshTurnUI();
+        }
+    }
+
+    private void RefreshActionTargetSelectionHighlights()
+    {
+        PlayerDisplay[] displays = FindObjectsByType<PlayerDisplay>(FindObjectsSortMode.None);
+        foreach (PlayerDisplay display in displays)
+        {
+            bool highlighted = actionTargetSelectionActive &&
+                               IsValidLocalActionTarget(pendingTargetActionCard, display.ClientId);
+            display.SetDragTargetHighlighted(highlighted);
+        }
+    }
+
+    public bool TryDiscardAndDrawFromUI(CardType cardType)
+    {
+        if (NetworkManager.Singleton == null ||
+            !IsLocalPlayerTurn() ||
+            !IsDiscardableHandCard(cardType) ||
+            !HasCardInHand(NetworkManager.Singleton.LocalClientId, cardType))
+        {
+            return false;
+        }
+
+        ClearActionTargetSelection();
         RequestDiscardAndDrawServerRpc(cardType);
+        return true;
     }
 
     //カードを盤面に置く処理
@@ -862,7 +951,9 @@ public class BoardManager : NetworkBehaviour
     private void RequestDiscardAndDrawServerRpc(CardType cardType, ServerRpcParams rpcParams = default)
     {
         ulong senderClientId = rpcParams.Receive.SenderClientId;
-        if (!CanAct(senderClientId) || !HasCardInHand(senderClientId, cardType))
+        if (!CanAct(senderClientId) ||
+            !IsDiscardableHandCard(cardType) ||
+            !HasCardInHand(senderClientId, cardType))
         {
             return;
         }
@@ -870,6 +961,11 @@ public class BoardManager : NetworkBehaviour
         RemoveCardFromHand(senderClientId, cardType);
         DrawCard(senderClientId);
         AdvanceTurn();
+    }
+
+    private bool IsDiscardableHandCard(CardType cardType)
+    {
+        return IsRoadCard(cardType) || IsActionCard(cardType);
     }
 
     private bool IsRoadCard(CardType cardType)
@@ -1212,6 +1308,7 @@ public class BoardManager : NetworkBehaviour
 
     private void OnGameEndedChanged(bool previousValue, bool newValue)
     {
+        ClearActionTargetSelection(false);
         RefreshTurnUI();
         RefreshLocalHand();
         RefreshPlacementHighlights();
@@ -1219,6 +1316,7 @@ public class BoardManager : NetworkBehaviour
 
     private void OnTurnChanged(int previousValue, int newValue)
     {
+        ClearActionTargetSelection(false);
         RefreshPlayerList();
         RefreshLocalHand();
         RefreshTurnUI();
@@ -1235,6 +1333,12 @@ public class BoardManager : NetworkBehaviour
     private void RefreshTurnUI()
     {
         if (turnText == null) return;
+
+        if (actionTargetSelectionActive)
+        {
+            turnText.text = "banカードの対象プレイヤーを選択してください";
+            return;
+        }
 
         if (gameEnded.Value)
         {

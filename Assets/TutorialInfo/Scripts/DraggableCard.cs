@@ -305,7 +305,11 @@ public class DraggableCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
 
         if (eventData.button == PointerEventData.InputButton.Right)
         {
-            BoardManager.Instance.TryDiscardAndDrawFromUI(GetCardType());
+            bool discardRequested = BoardManager.Instance.TryDiscardAndDrawFromUI(GetCardType());
+            if (!discardRequested)
+            {
+                Debug.Log("[Discard] このカードは現在捨てられません。");
+            }
         }
     }
 
