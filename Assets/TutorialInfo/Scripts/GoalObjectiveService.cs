@@ -2,8 +2,7 @@ using System;
 using UnityEngine;
 
 /// <summary>
-/// Owns the server-only gold location and the reveal policy for the three goals.
-/// Clients only receive the resulting CardType after a goal is reached.
+/// ÉSÅ[Éãóp
 /// </summary>
 public sealed class GoalObjectiveService
 {

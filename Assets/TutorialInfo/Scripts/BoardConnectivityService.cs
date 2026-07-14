@@ -1,14 +1,18 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+/// <summary>
+//カードがスタートカードに接続されているかどうかを判定する
 public interface IBoardConnectivityService
 {
+   
     bool ConnectsToStart(
         Vector2Int position,
         CardType cardType,
         bool rotated,
         IEnumerable<CardState> placedCards);
 
+    //繋がっている地形がスタートカードに接続されているか判定
     bool ExistingCardConnectsToStart(
         Vector2Int startPosition,
         IEnumerable<CardState> placedCards);
@@ -21,6 +25,7 @@ public interface IBoardConnectivityService
 /// </summary>
 public sealed class BoardConnectivityService : IBoardConnectivityService
 {
+    //4方向用のベクトル配列(中身の変換無し)
     private static readonly Vector2Int[] Directions =
     {
         Vector2Int.up,
@@ -29,12 +34,14 @@ public sealed class BoardConnectivityService : IBoardConnectivityService
         Vector2Int.right
     };
 
+    //今おこうとしているカードがスタートカードに接続されているか判定
     public bool ConnectsToStart(
         Vector2Int position,
         CardType cardType,
         bool rotated,
         IEnumerable<CardState> placedCards)
     {
+        //座標のデータ構造から辞書にコピーする
         Dictionary<Vector2Int, CardState> board = CreateSnapshot(placedCards);
 
         foreach (Vector2Int direction in Directions)

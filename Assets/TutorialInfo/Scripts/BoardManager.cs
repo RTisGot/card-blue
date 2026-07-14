@@ -803,6 +803,7 @@ public class BoardManager : NetworkBehaviour
                 break;
         }
     }
+    //プレイヤーの持っている道具の状態を管理して更新する
     private void SetPlayerToolBrokenState(ulong targetClientId, CardType cardType, bool isBroken)
     {
         for (int i = 0; i < placedCards.Count; i++)
@@ -814,6 +815,7 @@ public class BoardManager : NetworkBehaviour
             }
 
             bool updated = false;
+            //isBrokenの値に書き換える
             switch (cardType)
             {
                 case CardType.Lanternban:
@@ -846,7 +848,6 @@ public class BoardManager : NetworkBehaviour
     private CellComponent GetCellAt(int x, int y)
     {
         // 盤面上のすべてのCellComponentを探して、座標が一致するものを返す
-        // すでに scene 内に CellComponent が配置されている前提です
         foreach (var cell in FindObjectsOfType<CellComponent>())
         {
             if (cell.x == x && cell.y == y) // もし CellComponent に x, y というプロパティがあれば
@@ -1006,13 +1007,14 @@ public class BoardManager : NetworkBehaviour
         playerInfo = default;
         return false;
     }
+    //指定されたプレイヤーの道具の状態を取得する処理
     public bool TryGetPlayerToolBrokenState(ulong clientId, out bool isLanternBroken, out bool isPickaxeBroken, out bool isRailcarBroken)
     {
         isLanternBroken = false;
         isPickaxeBroken = false;
         isRailcarBroken = false;
 
-        PlayerNetworkData playerData = FindPlayerNetworkData(clientId);
+        PlayerNetworkData playerData = FindPlayerNetworkData(clientId);//サーバー側のプレイヤーデータを取得
         if (playerData != null)
         {
             isLanternBroken = playerData.isLanternBroken.Value;
@@ -1174,10 +1176,20 @@ public class BoardManager : NetworkBehaviour
             }
 
             winningClientId.Value = discoveringClientId;
-            gameEnded.Value = true;
+            EndGame();
             Debug.Log($"[Goal] {GetPlayerName(discoveringClientId)} reached the gold and won the game.");
             return;
         }
+    }
+
+    //ゲーム終了処理
+    private void EndGame()
+    {
+      
+        gameEnded.Value = true;
+
+        // 全クライアントに対してシーン遷移を命令
+        NetworkManager.SceneManager.LoadScene("ResultScene", UnityEngine.SceneManagement.LoadSceneMode.Single);
     }
 
     //次のプレイヤーにターンを進める処理
