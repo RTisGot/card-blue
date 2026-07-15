@@ -10,13 +10,15 @@ public class PlayerListUI : NetworkBehaviour
 
     private void Update()
     {
+        //(クラッシュ制御用)
         if (NetworkManager.Singleton == null || !NetworkManager.Singleton.IsListening || nameListText == null)
         {
             return;
         }
 
+        //参加者リスト用の文字列
         string displayString = "参加者リスト:\n";
-        HashSet<ulong> displayedClientIds = new HashSet<ulong>();
+        HashSet<ulong> displayedClientIds = new HashSet<ulong>();//同じプレイヤーが複数回表示されないようにするため
 
         if (BoardManager.Instance != null && BoardManager.Instance.PlayerCount > 0)
         {
@@ -96,12 +98,12 @@ public class PlayerListUI : NetworkBehaviour
 
     private string GetActionIconLine(bool isLanternBroken, bool isPickaxeBroken, bool isRailcarBroken)
     {
-        string iconLine = "";
+        //状況によってアイコンを変更
+        string lanternIcon = isLanternBroken ? "LanternBroken" : "LanternNormal";
+        string pickaxeIcon = isPickaxeBroken ? "PickaxeBroken" : "PickaxeNormal";
+        string railcarIcon = isRailcarBroken ? "RailcarBroken" : "RailcarNormal";
 
-        if (isLanternBroken) iconLine += "<sprite name=\"LanternBroken\"> ";
-        if (isPickaxeBroken) iconLine += "<sprite name=\"PickaxeBroken\"> ";
-        if (isRailcarBroken) iconLine += "<sprite name=\"RailcarBroken\"> ";
-
-        return iconLine.TrimEnd();
+        //一括で文字列を組み立て
+        return $"<sprite name=\"{lanternIcon}\"> <sprite name=\"{pickaxeIcon}\"> <sprite name=\"{railcarIcon}\">";
     }
 }
