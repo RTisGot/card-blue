@@ -35,6 +35,10 @@ public class BoardManager : NetworkBehaviour
     [SerializeField] private Transform playerListParent;
     [SerializeField] private Canvas mainCanvas;
 
+    [Header("Private Role UI")]
+    [SerializeField] private Sprite minerRoleSprite;
+    [SerializeField] private Sprite saboteurRoleSprite;
+
     [Header("Deck Settings")]
     [SerializeField, Min(1)] private int initialHandSize = 6;
     [SerializeField, Min(1)] private int copiesPerCardType = 10;
@@ -64,6 +68,7 @@ public class BoardManager : NetworkBehaviour
     private NetworkList<ulong> connectedPlayers;
     private NetworkList<CardState> placedCards;          // 全プレイヤーで共有する盤面のカード状態
     private NetworkList<PlayerInfo> players;             // 参加プレイヤーのリスト
+    private NetworkList<PlayerToolState> playerToolStates;
     private NetworkList<DealtCard> dealtCards;           // 手札の同期用リスト（所有者情報を含む）
 
     // --- ローカル状態管理 ---
@@ -72,6 +77,7 @@ public class BoardManager : NetworkBehaviour
     private readonly List<CardView> spawnedHandCards = new List<CardView>();
     private readonly List<CellComponent> cachedBoardCells = new List<CellComponent>();
     private readonly List<CardType> deck = new List<CardType>(); // サーバーのみが保持する山札リスト
+    private readonly Dictionary<ulong, PlayerRole> serverPlayerRoles = new Dictionary<ulong, PlayerRole>();
 
     // --- 同期変数 ---
     private readonly NetworkVariable<int> currentPlayerIndex = new NetworkVariable<int>(0);
@@ -91,6 +97,10 @@ public class BoardManager : NetworkBehaviour
     private bool highlightedCardRotated;
     private bool actionTargetSelectionActive;
     private CardType pendingTargetActionCard;
+    private GameObject actionTargetPanel;
+    private readonly List<GameObject> actionTargetPanelEntries = new List<GameObject>();
+    private GameObject localRoleImageObject;
+    private bool rolesAssigned;
     public static BoardManager Instance;
 
 
@@ -104,6 +114,7 @@ public class BoardManager : NetworkBehaviour
         connectedPlayers = new NetworkList<ulong>();
         placedCards = new NetworkList<CardState>();
         players = new NetworkList<PlayerInfo>();
+        playerToolStates = new NetworkList<PlayerToolState>();
         dealtCards = new NetworkList<DealtCard>();
         connectivityService = new BoardConnectivityService();
         goalObjectiveService = new GoalObjectiveService();
@@ -128,6 +139,7 @@ public class BoardManager : NetworkBehaviour
         // 状態変更時のコールバック登録
         placedCards.OnListChanged += OnPlacedCardsChanged;
         players.OnListChanged += OnPlayersChanged;
+        playerToolStates.OnListChanged += OnPlayerToolStatesChanged;
         dealtCards.OnListChanged += OnDealtCardsChanged;
         currentPlayerIndex.OnValueChanged += OnTurnChanged;
         roundNumber.OnValueChanged += OnTurnChanged;
@@ -162,6 +174,8 @@ public class BoardManager : NetworkBehaviour
             {
                 RegisterOrUpdatePlayer(clientId, $"Player {clientId}");
             }
+
+            StartCoroutine(AssignRolesWhenPlayersReady());
            
         }
 
@@ -256,6 +270,8 @@ public class BoardManager : NetworkBehaviour
             return;
         }
 
+        EnsurePlayerToolState(clientId);
+
         string safeName = requestedName.Trim();
 
         if (RelayManager.TryGetPlayerName(clientId, out string approvedName) &&
@@ -291,6 +307,19 @@ public class BoardManager : NetworkBehaviour
         DealInitialHand(clientId);
         RefreshTurnAfterPlayerChange();
         Debug.Log($"Player registered: {safeName} ({clientId})");
+    }
+
+    private void EnsurePlayerToolState(ulong clientId)
+    {
+        for (int i = 0; i < playerToolStates.Count; i++)
+        {
+            if (playerToolStates[i].clientId == clientId)
+            {
+                return;
+            }
+        }
+
+        playerToolStates.Add(new PlayerToolState(clientId));
     }
 
     private void RefreshTurnAfterPlayerChange()
@@ -351,6 +380,112 @@ public class BoardManager : NetworkBehaviour
     {
         RefreshPlayerList();
         RefreshTurnUI();
+        RefreshPlacementHighlights();
+    }
+
+    private IEnumerator AssignRolesWhenPlayersReady()
+    {
+        while (!rolesAssigned)
+        {
+            int connectedCount = NetworkManager.Singleton != null
+                ? NetworkManager.Singleton.ConnectedClientsIds.Count
+                : 0;
+
+            if (connectedCount >= 2 && players.Count == connectedCount)
+            {
+                // 全クライアント側でシーンオブジェクトがSpawnされる時間を1フレーム確保する。
+                yield return null;
+                AssignRolesOnServer();
+                yield break;
+            }
+
+            yield return null;
+        }
+    }
+
+    private void AssignRolesOnServer()
+    {
+        if (!IsServer || rolesAssigned || players.Count < 2)
+        {
+            return;
+        }
+
+        List<ulong> shuffledClientIds = new List<ulong>();
+        for (int i = 0; i < players.Count; i++)
+        {
+            shuffledClientIds.Add(players[i].clientId);
+        }
+
+        for (int i = 0; i < shuffledClientIds.Count; i++)
+        {
+            int randomIndex = UnityEngine.Random.Range(i, shuffledClientIds.Count);
+            ulong temporary = shuffledClientIds[i];
+            shuffledClientIds[i] = shuffledClientIds[randomIndex];
+            shuffledClientIds[randomIndex] = temporary;
+        }
+
+        int saboteurCount = shuffledClientIds.Count == 4
+            ? UnityEngine.Random.Range(1, 3)
+            : Mathf.Clamp(Mathf.RoundToInt(shuffledClientIds.Count / 3f), 1, shuffledClientIds.Count - 1);
+
+        serverPlayerRoles.Clear();
+        for (int i = 0; i < shuffledClientIds.Count; i++)
+        {
+            ulong clientId = shuffledClientIds[i];
+            PlayerRole role = i < saboteurCount ? PlayerRole.Saboteur : PlayerRole.Miner;
+            serverPlayerRoles[clientId] = role;
+
+            ReceivePrivateRoleClientRpc(
+                role,
+                CreateTargetClientRpcParams(clientId));
+        }
+
+        rolesAssigned = true;
+        Debug.Log($"[Role] Assigned {saboteurCount} saboteur(s) and {shuffledClientIds.Count - saboteurCount} miner(s).");
+    }
+
+    [ClientRpc]
+    private void ReceivePrivateRoleClientRpc(PlayerRole role, ClientRpcParams clientRpcParams = default)
+    {
+        ShowLocalRoleImage(role);
+    }
+
+    private void ShowLocalRoleImage(PlayerRole role)
+    {
+        if (mainCanvas == null)
+        {
+            return;
+        }
+
+        if (localRoleImageObject == null)
+        {
+            localRoleImageObject = new GameObject(
+                "PrivateRoleImage",
+                typeof(RectTransform),
+                typeof(CanvasRenderer),
+                typeof(Image));
+            localRoleImageObject.transform.SetParent(mainCanvas.transform, false);
+
+            RectTransform roleRect = localRoleImageObject.GetComponent<RectTransform>();
+            roleRect.anchorMin = new Vector2(0f, 1f);
+            roleRect.anchorMax = new Vector2(0f, 1f);
+            roleRect.pivot = new Vector2(0f, 1f);
+            roleRect.anchoredPosition = new Vector2(24f, -24f);
+            roleRect.sizeDelta = new Vector2(180f, 180f);
+        }
+
+        Image roleImage = localRoleImageObject.GetComponent<Image>();
+        roleImage.sprite = role == PlayerRole.Saboteur ? saboteurRoleSprite : minerRoleSprite;
+        roleImage.preserveAspect = true;
+        roleImage.raycastTarget = false;
+        localRoleImageObject.SetActive(roleImage.sprite != null);
+        localRoleImageObject.transform.SetAsLastSibling();
+    }
+
+    private void OnPlayerToolStatesChanged(NetworkListEvent<PlayerToolState> changeEvent)
+    {
+        RefreshPlayerList();
+        RefreshLocalHand();
         RefreshPlacementHighlights();
     }
 
@@ -418,6 +553,7 @@ public class BoardManager : NetworkBehaviour
         }
 
         RefreshActionTargetSelectionHighlights();
+        RefreshActionTargetSelectionPanel();
     }
 
     //手札の状態を更新する
@@ -540,6 +676,26 @@ public class BoardManager : NetworkBehaviour
         return IsLocalPlayerTurn()
             && IsTerrainCard(cardType)
             && CanPlaceCard(NetworkManager.Singleton.LocalClientId, new Vector2Int(x, y), cardType, rotated);
+    }
+
+    public bool CanUseCardFromUI(CardType cardType)
+    {
+        if (!IsLocalPlayerTurn() || NetworkManager.Singleton == null)
+        {
+            return false;
+        }
+
+        if (!IsRoadCard(cardType))
+        {
+            return true;
+        }
+
+        TryGetPlayerToolBrokenState(
+            NetworkManager.Singleton.LocalClientId,
+            out bool isLanternBroken,
+            out bool isPickaxeBroken,
+            out bool isRailcarBroken);
+        return !isLanternBroken && !isPickaxeBroken && !isRailcarBroken;
     }
 
     //おける場所のハイライト表示
@@ -682,6 +838,7 @@ public class BoardManager : NetworkBehaviour
         pendingTargetActionCard = cardType;
         actionTargetSelectionActive = true;
         RefreshActionTargetSelectionHighlights();
+        RefreshActionTargetSelectionPanel();
         RefreshTurnUI();
         return true;
     }
@@ -706,6 +863,7 @@ public class BoardManager : NetworkBehaviour
 
         actionTargetSelectionActive = false;
         RefreshActionTargetSelectionHighlights();
+        RefreshActionTargetSelectionPanel();
         if (refreshTurnText)
         {
             RefreshTurnUI();
@@ -721,6 +879,187 @@ public class BoardManager : NetworkBehaviour
                                IsValidLocalActionTarget(pendingTargetActionCard, display.ClientId);
             display.SetDragTargetHighlighted(highlighted);
         }
+    }
+
+    /// <summary>
+    /// 妨害カードを左クリックした時だけ、自分以外の対象候補を専用パネルに表示する。
+    /// シーンへの手作業でのUI追加を不要にするため、パネルは実行時に生成する。
+    /// </summary>
+    private void RefreshActionTargetSelectionPanel()
+    {
+        if (!actionTargetSelectionActive)
+        {
+            if (actionTargetPanel != null)
+            {
+                actionTargetPanel.SetActive(false);
+            }
+            return;
+        }
+
+        EnsureActionTargetPanel();
+        if (actionTargetPanel == null)
+        {
+            return;
+        }
+
+        foreach (GameObject entry in actionTargetPanelEntries)
+        {
+            if (entry != null)
+            {
+                Destroy(entry);
+            }
+        }
+        actionTargetPanelEntries.Clear();
+
+        actionTargetPanel.SetActive(true);
+        actionTargetPanel.transform.SetAsLastSibling();
+
+        GameObject title = CreateActionTargetText(
+            actionTargetPanel.transform,
+            "対象プレイヤーを選択",
+            28f,
+            54f);
+        actionTargetPanelEntries.Add(title);
+
+        for (int i = 0; i < players.Count; i++)
+        {
+            PlayerInfo player = players[i];
+            if (!IsValidLocalActionTarget(pendingTargetActionCard, player.clientId))
+            {
+                continue;
+            }
+
+            ulong targetClientId = player.clientId;
+            GameObject buttonObject = new GameObject(
+                $"ActionTarget_{targetClientId}",
+                typeof(RectTransform),
+                typeof(CanvasRenderer),
+                typeof(Image),
+                typeof(Button),
+                typeof(LayoutElement));
+            buttonObject.transform.SetParent(actionTargetPanel.transform, false);
+
+            Image buttonImage = buttonObject.GetComponent<Image>();
+            buttonImage.color = new Color(0.18f, 0.22f, 0.28f, 0.98f);
+
+            LayoutElement layout = buttonObject.GetComponent<LayoutElement>();
+            layout.preferredWidth = 380f;
+            layout.preferredHeight = 62f;
+
+            Button button = buttonObject.GetComponent<Button>();
+            ColorBlock colors = button.colors;
+            colors.normalColor = Color.white;
+            colors.highlightedColor = new Color(1f, 0.88f, 0.45f, 1f);
+            colors.pressedColor = new Color(1f, 0.72f, 0.25f, 1f);
+            button.colors = colors;
+            button.onClick.AddListener(() => TrySelectPendingActionTarget(targetClientId));
+
+            CreateActionTargetText(
+                buttonObject.transform,
+                player.playerName.ToString(),
+                25f,
+                62f,
+                true);
+            actionTargetPanelEntries.Add(buttonObject);
+        }
+
+        GameObject cancelButton = new GameObject(
+            "ActionTargetCancel",
+            typeof(RectTransform),
+            typeof(CanvasRenderer),
+            typeof(Image),
+            typeof(Button),
+            typeof(LayoutElement));
+        cancelButton.transform.SetParent(actionTargetPanel.transform, false);
+        cancelButton.GetComponent<Image>().color = new Color(0.35f, 0.35f, 0.35f, 0.95f);
+        LayoutElement cancelLayout = cancelButton.GetComponent<LayoutElement>();
+        cancelLayout.preferredWidth = 380f;
+        cancelLayout.preferredHeight = 48f;
+        cancelButton.GetComponent<Button>().onClick.AddListener(() => ClearActionTargetSelection());
+        CreateActionTargetText(cancelButton.transform, "キャンセル", 21f, 48f, true);
+        actionTargetPanelEntries.Add(cancelButton);
+    }
+
+    private void EnsureActionTargetPanel()
+    {
+        if (actionTargetPanel != null)
+        {
+            return;
+        }
+
+        Transform panelParent = mainCanvas != null ? mainCanvas.transform : transform;
+        actionTargetPanel = new GameObject(
+            "ActionTargetSelectionPanel",
+            typeof(RectTransform),
+            typeof(CanvasRenderer),
+            typeof(Image),
+            typeof(VerticalLayoutGroup),
+            typeof(ContentSizeFitter));
+        actionTargetPanel.transform.SetParent(panelParent, false);
+
+        RectTransform panelRect = actionTargetPanel.GetComponent<RectTransform>();
+        panelRect.anchorMin = new Vector2(0.5f, 0.5f);
+        panelRect.anchorMax = new Vector2(0.5f, 0.5f);
+        panelRect.pivot = new Vector2(0.5f, 0.5f);
+        panelRect.anchoredPosition = Vector2.zero;
+        panelRect.sizeDelta = new Vector2(420f, 0f);
+
+        Image panelImage = actionTargetPanel.GetComponent<Image>();
+        panelImage.color = new Color(0.04f, 0.055f, 0.075f, 0.96f);
+
+        VerticalLayoutGroup layout = actionTargetPanel.GetComponent<VerticalLayoutGroup>();
+        layout.padding = new RectOffset(20, 20, 18, 18);
+        layout.spacing = 10f;
+        layout.childAlignment = TextAnchor.MiddleCenter;
+        layout.childControlWidth = true;
+        layout.childControlHeight = true;
+        layout.childForceExpandWidth = true;
+        layout.childForceExpandHeight = false;
+
+        ContentSizeFitter fitter = actionTargetPanel.GetComponent<ContentSizeFitter>();
+        fitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
+        fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+    }
+
+    private GameObject CreateActionTargetText(
+        Transform parent,
+        string content,
+        float fontSize,
+        float preferredHeight,
+        bool stretchToParent = false)
+    {
+        GameObject textObject = new GameObject(
+            "Text",
+            typeof(RectTransform),
+            typeof(CanvasRenderer),
+            typeof(TextMeshProUGUI),
+            typeof(LayoutElement));
+        textObject.transform.SetParent(parent, false);
+
+        RectTransform textRect = textObject.GetComponent<RectTransform>();
+        if (stretchToParent)
+        {
+            textRect.anchorMin = Vector2.zero;
+            textRect.anchorMax = Vector2.one;
+            textRect.offsetMin = Vector2.zero;
+            textRect.offsetMax = Vector2.zero;
+        }
+
+        TextMeshProUGUI text = textObject.GetComponent<TextMeshProUGUI>();
+        text.text = content;
+        text.fontSize = fontSize;
+        text.alignment = TextAlignmentOptions.Center;
+        text.color = Color.white;
+        text.raycastTarget = false;
+        if (turnText != null && turnText.font != null)
+        {
+            text.font = turnText.font;
+        }
+
+        LayoutElement textLayout = textObject.GetComponent<LayoutElement>();
+        textLayout.preferredHeight = preferredHeight;
+        textLayout.ignoreLayout = stretchToParent;
+        return textObject;
     }
 
     public bool TryDiscardAndDrawFromUI(CardType cardType)
@@ -895,6 +1234,8 @@ public class BoardManager : NetworkBehaviour
     //プレイヤーの持っている道具の状態を管理して更新する
     private void SetPlayerToolBrokenState(ulong targetClientId, CardType cardType, bool isBroken)
     {
+        SetSynchronizedPlayerToolBrokenState(targetClientId, cardType, isBroken);
+
         for (int i = 0; i < placedCards.Count; i++)
         {
             CardState card = placedCards[i];
@@ -932,6 +1273,41 @@ public class BoardManager : NetworkBehaviour
 
         SetPlayerNetworkToolBrokenState(targetClientId, cardType, isBroken);//ネットワークの同期
         RefreshPlayerList();
+    }
+
+    private void SetSynchronizedPlayerToolBrokenState(ulong targetClientId, CardType cardType, bool isBroken)
+    {
+        EnsurePlayerToolState(targetClientId);
+
+        for (int i = 0; i < playerToolStates.Count; i++)
+        {
+            PlayerToolState state = playerToolStates[i];
+            if (state.clientId != targetClientId)
+            {
+                continue;
+            }
+
+            switch (cardType)
+            {
+                case CardType.Lanternban:
+                case CardType.Lanternrepaire:
+                    state.isLanternBroken = isBroken;
+                    break;
+                case CardType.Pickaxeban:
+                case CardType.Pickaxerepaire:
+                    state.isPickaxeBroken = isBroken;
+                    break;
+                case CardType.Railcarban:
+                case CardType.Railcarrepaire:
+                    state.isRailcarBroken = isBroken;
+                    break;
+                default:
+                    return;
+            }
+
+            playerToolStates[i] = state;
+            return;
+        }
     }
 
     private CellComponent GetCellAt(int x, int y)
@@ -1109,6 +1485,20 @@ public class BoardManager : NetworkBehaviour
         isLanternBroken = false;
         isPickaxeBroken = false;
         isRailcarBroken = false;
+
+        for (int i = 0; i < playerToolStates.Count; i++)
+        {
+            PlayerToolState state = playerToolStates[i];
+            if (state.clientId != clientId)
+            {
+                continue;
+            }
+
+            isLanternBroken = state.isLanternBroken;
+            isPickaxeBroken = state.isPickaxeBroken;
+            isRailcarBroken = state.isRailcarBroken;
+            return true;
+        }
 
         PlayerNetworkData playerData = FindPlayerNetworkData(clientId);//サーバー側のプレイヤーデータを取得
         if (playerData != null)
@@ -1594,6 +1984,7 @@ public class BoardManager : NetworkBehaviour
     {
         placedCards.OnListChanged -= OnPlacedCardsChanged;
         players.OnListChanged -= OnPlayersChanged;
+        playerToolStates.OnListChanged -= OnPlayerToolStatesChanged;
         dealtCards.OnListChanged -= OnDealtCardsChanged;
         currentPlayerIndex.OnValueChanged -= OnTurnChanged;
         roundNumber.OnValueChanged -= OnTurnChanged;
@@ -1602,9 +1993,20 @@ public class BoardManager : NetworkBehaviour
 
     private void OnDestroy()
     {
+        if (actionTargetPanel != null)
+        {
+            Destroy(actionTargetPanel);
+        }
+
+        if (localRoleImageObject != null)
+        {
+            Destroy(localRoleImageObject);
+        }
+
         connectedPlayers?.Dispose();
         placedCards?.Dispose();
         players?.Dispose();
+        playerToolStates?.Dispose();
         dealtCards?.Dispose();
     }
 }

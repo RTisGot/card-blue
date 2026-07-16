@@ -7,6 +7,7 @@ using UnityEngine.EventSystems;
 public class PlayerDisplay : NetworkBehaviour, IPointerClickHandler
 {
     [SerializeField] private TMP_Text nameText;
+    [SerializeField] private TMP_SpriteAsset toolIconSpriteAsset;
     [SerializeField] private Image backgroundImage;
     [SerializeField] private Color normalColor = new Color(1f, 1f, 1f, 0.08f);
     [SerializeField] private Color currentTurnColor = new Color(1f, 0.84f, 0.29f, 0.25f);
@@ -51,20 +52,21 @@ public class PlayerDisplay : NetworkBehaviour, IPointerClickHandler
         if (nameText != null)
         {
             nameText.richText = true;
-            nameText.alignment = TextAlignmentOptions.Center;
+            nameText.alignment = TextAlignmentOptions.MidlineLeft;
             nameText.enableWordWrapping = true;
             nameText.fontSizeMin = 18f;
             nameText.fontSizeMax = Mathf.Max(nameText.fontSize, 26f);
             nameText.enableAutoSizing = true;
             nameText.lineSpacing = 6f;
+            nameText.margin = new Vector4(14f, 6f, 14f, 6f);
+            nameText.outlineColor = new Color32(0, 0, 0, 230);
+            nameText.outlineWidth = 0.18f;
 
             string playerLine = isCurrentTurn
-                ? $"<color=#FFD54A>▶ {playerName} のターン</color>"
+                ? $"<color=#FFD54A><b>\u25B6 {playerName} \u306E\u30BF\u30FC\u30F3</b></color>"
                 : playerName;
             string actionIconLine = GetActionIconLine(isLanternBroken, isPickaxeBroken, isRailcarBroken);
-            nameText.text = string.IsNullOrEmpty(actionIconLine)
-                ? playerLine
-                : $"{playerLine}\n{actionIconLine}";
+            nameText.text = $"{playerLine}\n{actionIconLine}";
         }
 
         if (backgroundImage != null)
@@ -115,26 +117,13 @@ public class PlayerDisplay : NetworkBehaviour, IPointerClickHandler
 
     private static string GetActionIconLine(bool isLanternBroken, bool isPickaxeBroken, bool isRailcarBroken)
     {
-        string iconLine = "";
+        string lanternIcon = isLanternBroken ? "LanternBroken" : "LanternNormal";
+        string pickaxeIcon = isPickaxeBroken ? "PickaxeBroken" : "PickaxeNormal";
+        string railcarIcon = isRailcarBroken ? "RailcarBroken" : "RailcarNormal";
 
-        if (isLanternBroken)
-        {
-            iconLine += "<color=#FFD54A>🏮</color> ";
-        }
-
-        if (isPickaxeBroken)
-        {
-            iconLine += "<color=#B8E0FF>⛁E/color> ";
-        }
-
-        if (isRailcarBroken)
-        {
-            iconLine += "<color=#D7D7D7>🚃</color> ";
-        }
-
-        return string.IsNullOrEmpty(iconLine)
-            ? ""
-            : $"<size=70%>{iconLine.TrimEnd()}</size>";
+        return $"<size=70%><sprite name=\"{lanternIcon}\"> " +
+               $"<sprite name=\"{pickaxeIcon}\"> " +
+               $"<sprite name=\"{railcarIcon}\"></size>";
     }
 
     private void EnsureReferences()
@@ -144,15 +133,14 @@ public class PlayerDisplay : NetworkBehaviour, IPointerClickHandler
             nameText = GetComponentInChildren<TMP_Text>();
         }
 
-        if (backgroundImage == null)
+        if (nameText != null && toolIconSpriteAsset != null)
         {
-            backgroundImage = GetComponent<Image>();
+            nameText.spriteAsset = toolIconSpriteAsset;
         }
 
         if (backgroundImage == null)
         {
-            backgroundImage = gameObject.AddComponent<Image>();
-            backgroundImage.color = normalColor;
+            backgroundImage = GetComponent<Image>();
         }
     }
 }

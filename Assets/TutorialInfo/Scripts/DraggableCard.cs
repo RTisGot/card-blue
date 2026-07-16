@@ -32,7 +32,9 @@ public class DraggableCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
 
     private bool CanRotateCard()
     {
-        return CanUseCard() && !BoardManager.IsActionCard(GetCardType());
+        return CanUseCard() &&
+               BoardManager.Instance.CanUseCardFromUI(GetCardType()) &&
+               !BoardManager.IsActionCard(GetCardType());
     }
 
     private void HandleRotationChanged(bool rotated)
