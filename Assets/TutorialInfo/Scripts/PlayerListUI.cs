@@ -17,7 +17,7 @@ public class PlayerListUI : NetworkBehaviour
         }
 
         //参加者リスト用の文字列
-        string displayString = "参加者リスト:\n";
+        string displayString = "\n";
         HashSet<ulong> displayedClientIds = new HashSet<ulong>();//同じプレイヤーが複数回表示されないようにするため
 
         if (BoardManager.Instance != null && BoardManager.Instance.PlayerCount > 0)
@@ -83,7 +83,7 @@ public class PlayerListUI : NetworkBehaviour
         string iconLine = GetActionIconLine(isLanternBroken, isPickaxeBroken, isRailcarBroken);
         return string.IsNullOrEmpty(iconLine)
             ? $"・{playerName}\n"
-            : $"・{playerName}\n  {iconLine}\n";
+            : $"・{playerName}\n  {iconLine}\n\n";
     }
 
     private string FormatPlayerLine(PlayerNetworkData data, string playerName, ulong clientId)

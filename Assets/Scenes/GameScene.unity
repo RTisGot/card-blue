@@ -740,14 +740,14 @@ RectTransform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 120874424}
-  - {fileID: 332044575}
-  - {fileID: 1254404526}
   - {fileID: 838401101}
   - {fileID: 418664214}
   - {fileID: 1172707145}
   - {fileID: 1019621136}
   - {fileID: 1896547795}
+  - {fileID: 332044575}
   - {fileID: 1299804952}
+  - {fileID: 1254404526}
   - {fileID: 714190398}
   - {fileID: 1884885111}
   - {fileID: 192462161}
@@ -990,7 +990,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &714190398
 RectTransform:
   m_ObjectHideFlags: 0
@@ -1753,7 +1753,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &1299804952
 RectTransform:
   m_ObjectHideFlags: 0
@@ -1786,7 +1786,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 0.392}
+  m_Color: {r: 1, g: 1, b: 1, a: 0}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -2655,11 +2655,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 353070224350181929, guid: 98aab64553f84c74bbcff20ab7fe93ec, type: 3}
       propertyPath: m_SizeDelta.x
-      value: 249.4768
+      value: 338.5
       objectReference: {fileID: 0}
     - target: {fileID: 353070224350181929, guid: 98aab64553f84c74bbcff20ab7fe93ec, type: 3}
       propertyPath: m_SizeDelta.y
-      value: 73.1122
+      value: 105.6628
       objectReference: {fileID: 0}
     - target: {fileID: 353070224350181929, guid: 98aab64553f84c74bbcff20ab7fe93ec, type: 3}
       propertyPath: m_LocalPosition.x
@@ -2691,11 +2691,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 353070224350181929, guid: 98aab64553f84c74bbcff20ab7fe93ec, type: 3}
       propertyPath: m_AnchoredPosition.x
-      value: 796.7616
+      value: 776.31
       objectReference: {fileID: 0}
     - target: {fileID: 353070224350181929, guid: 98aab64553f84c74bbcff20ab7fe93ec, type: 3}
       propertyPath: m_AnchoredPosition.y
-      value: 464.00012
+      value: 424
       objectReference: {fileID: 0}
     - target: {fileID: 353070224350181929, guid: 98aab64553f84c74bbcff20ab7fe93ec, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
@@ -2721,6 +2721,10 @@ PrefabInstance:
       propertyPath: m_fontAsset
       value: 
       objectReference: {fileID: 11400000, guid: cdd7b830eb46ebb42abfec333821465a, type: 2}
+    - target: {fileID: 3452983350397122665, guid: 98aab64553f84c74bbcff20ab7fe93ec, type: 3}
+      propertyPath: m_spriteAsset
+      value: 
+      objectReference: {fileID: 11400000, guid: 4e0349e2138e6404abad3455dae0eff0, type: 2}
     - target: {fileID: 3452983350397122665, guid: 98aab64553f84c74bbcff20ab7fe93ec, type: 3}
       propertyPath: m_sharedMaterial
       value: 
