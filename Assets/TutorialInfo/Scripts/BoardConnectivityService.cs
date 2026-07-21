@@ -5,7 +5,7 @@ using UnityEngine;
 //カードがスタートカードに接続されているかどうかを判定する
 public interface IBoardConnectivityService
 {
-   
+
     bool ConnectsToStart(
         Vector2Int position,
         CardType cardType,
@@ -44,15 +44,16 @@ public sealed class BoardConnectivityService : IBoardConnectivityService
         //座標のデータ構造から辞書にコピーする
         Dictionary<Vector2Int, CardState> board = CreateSnapshot(placedCards);
 
-        foreach (Vector2Int direction in Directions)
+        foreach (Vector2Int direction in Directions)//Directionsの4方向をループ
         {
-            Vector2Int neighborPosition = position + direction;
+            Vector2Int neighborPosition = position + direction;//隣のマスを計算
+            //隣のマスにカードが置かれていない場合はスキップ(次のマスに)
             if (!board.TryGetValue(neighborPosition, out CardState neighbor) ||
                 !HasRoadConnection(cardType, rotated, direction, neighbor))
             {
                 continue;
             }
-
+            //隣のマスがスタートカードか、隣のマスからスタートカードに接続されている場合はtrueを返す
             if (neighbor.cardType == CardType.Start ||
                 ExistingCardConnectsToStart(neighborPosition, board))
             {
@@ -63,46 +64,50 @@ public sealed class BoardConnectivityService : IBoardConnectivityService
         return false;
     }
 
+    //盤面に置かれているカードの情報を辞書に変換する
     public bool ExistingCardConnectsToStart(
         Vector2Int startPosition,
-        IEnumerable<CardState> placedCards)
+        IEnumerable<CardState> placedCards)//盤面に置かれているカードの情報を受け取る
     {
         return ExistingCardConnectsToStart(startPosition, CreateSnapshot(placedCards));
     }
 
+    //探索する(BFS)
     private static bool ExistingCardConnectsToStart(
         Vector2Int startPosition,
         IReadOnlyDictionary<Vector2Int, CardState> board)
     {
-        Queue<Vector2Int> queue = new Queue<Vector2Int>();
-        HashSet<Vector2Int> visited = new HashSet<Vector2Int>();
-        queue.Enqueue(startPosition);
-        visited.Add(startPosition);
+        Queue<Vector2Int> queue = new Queue<Vector2Int>();　　　//見つけた場所から探索
+        HashSet<Vector2Int> visited = new HashSet<Vector2Int>();//見つけた場所の座標を記録する
+        queue.Enqueue(startPosition);　　　　　　　　　　       //探索開始座標を追加
+        visited.Add(startPosition);                             //探索開始座標を記録
 
+        //queueに調べる座標がある限りループ(startまで繋がっているか)
         while (queue.Count > 0)
         {
-            Vector2Int currentPosition = queue.Dequeue();
+            Vector2Int currentPosition = queue.Dequeue();//現在の座標を取得
+            //現在の座標にカードが置かれていない場合は次へ
             if (!board.TryGetValue(currentPosition, out CardState currentCard))
             {
                 continue;
             }
-
+            //現在のカードがスタートカードの場合はtrueを返す
             if (currentCard.cardType == CardType.Start)
             {
                 return true;
             }
 
-            foreach (Vector2Int direction in Directions)
+            foreach (Vector2Int direction in Directions)//4方向をループ
             {
-                Vector2Int nextPosition = currentPosition + direction;
-                if (visited.Contains(nextPosition) ||
-                    !board.TryGetValue(nextPosition, out CardState nextCard) ||
-                    !HasRoadConnection(currentCard.cardType, currentCard.rotated, direction, nextCard))
+                Vector2Int nextPosition = currentPosition + direction;//隣のマスの座標を計算
+                if (visited.Contains(nextPosition) ||                                                   //既に調べた場所
+                    !board.TryGetValue(nextPosition, out CardState nextCard) ||                         //隣のマスにカードが置かれていない
+                    !HasRoadConnection(currentCard.cardType, currentCard.rotated, direction, nextCard))//隣のマスと現在のマスが繋がっていない
                 {
                     continue;
                 }
 
-                visited.Add(nextPosition);
+                visited.Add(nextPosition);//次の場所を追加
                 queue.Enqueue(nextPosition);
             }
         }
@@ -122,7 +127,7 @@ public sealed class BoardConnectivityService : IBoardConnectivityService
         return board;
     }
 
-    private static bool HasRoadConnection(
+    public static bool HasRoadConnection(
         CardType cardType,
         bool rotated,
         Vector2Int direction,
