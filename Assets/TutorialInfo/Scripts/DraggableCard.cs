@@ -126,6 +126,82 @@ public class DraggableCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
         rotationController.SetDragging(false);
         GetOrAddCanvasGroup().blocksRaycasts = true;
 
+        if (IsFallingRocksCard(GetCardType()))
+        {
+            int targetX = 0;
+            int targetY = 0;
+            bool foundRoad = BoardManager.Instance != null &&
+                BoardManager.Instance.TryGetRemovableRoadAtScreenPoint(
+                    eventData.position,
+                    eventData.pressEventCamera,
+                    out targetX,
+                    out targetY);
+
+            if (!foundRoad)
+            {
+                CellComponent targetCell = GetCellAtPointer(eventData);
+                if (targetCell != null)
+                {
+                    targetX = targetCell.x;
+                    targetY = targetCell.y;
+                    foundRoad = true;
+                }
+            }
+
+            if (foundRoad &&
+                BoardManager.Instance != null &&
+                BoardManager.Instance.TryPlayFallingRocksFromUI(
+                    GetCardType(),
+                    targetX,
+                    targetY))
+            {
+                pendingPlacementCard = this;
+                return;
+            }
+
+            Debug.Log("[FallingRocks] 削除できる道カード上にドロップしてください。");
+            ReturnToHand();
+            return;
+        }
+
+        if (IsTreasureMapCard(GetCardType()))
+        {
+            int targetX = 0;
+            int targetY = 0;
+            bool foundGoal = BoardManager.Instance != null &&
+                BoardManager.Instance.TryGetHiddenGoalAtScreenPoint(
+                    eventData.position,
+                    eventData.pressEventCamera,
+                    out targetX,
+                    out targetY);
+
+            if (!foundGoal)
+            {
+                CellComponent targetCell = GetCellAtPointer(eventData);
+                if (targetCell != null)
+                {
+                    targetX = targetCell.x;
+                    targetY = targetCell.y;
+                    foundGoal = true;
+                }
+            }
+
+            if (foundGoal &&
+                BoardManager.Instance != null &&
+                BoardManager.Instance.TryPlayTreasureMapFromUI(
+                    GetCardType(),
+                    targetX,
+                    targetY))
+            {
+                pendingPlacementCard = this;
+                return;
+            }
+
+            Debug.Log("[TreasureMap] 未公開のGoalカード上にドロップしてください。");
+            ReturnToHand();
+            return;
+        }
+
         if (BoardManager.IsActionCard(GetCardType()))
         {
             PlayerDisplay targetPlayer = GetPlayerDisplayAtPointer(eventData);
@@ -301,15 +377,19 @@ public class DraggableCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
 
         if (eventData.button == PointerEventData.InputButton.Left && BoardManager.IsActionCard(GetCardType()))
         {
-            BoardManager.Instance.TryPlayActionCardFromUI(GetCardType());
-            return;
-        }
+            if (IsFallingRocksCard(GetCardType()))
+            {
+                Debug.Log("[FallingRocks] 削除したい道カードへドラッグしてください。");
+                return;
+            }
 
-        // 落石カードの場合
-        if (GetCardType() == CardType.Fallingrocks ||
-            GetCardType() == CardType.ActionFallingRocks)
-        {
-            BoardManager.Instance.StartFallingRocksSelection();
+            if (IsTreasureMapCard(GetCardType()))
+            {
+                Debug.Log("[TreasureMap] 確認したいGoalカードへドラッグしてください。");
+                return;
+            }
+
+            BoardManager.Instance.TryPlayActionCardFromUI(GetCardType());
             return;
         }
 
@@ -364,6 +444,18 @@ public class DraggableCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
                cardType == CardType.Lanternrepaire ||
                cardType == CardType.Pickaxerepaire ||
                cardType == CardType.Railcarrepaire;
+    }
+
+    private static bool IsFallingRocksCard(CardType cardType)
+    {
+        return cardType == CardType.Fallingrocks ||
+               cardType == CardType.ActionFallingRocks;
+    }
+
+    private static bool IsTreasureMapCard(CardType cardType)
+    {
+        return cardType == CardType.Treasuremap ||
+               cardType == CardType.ActionMap;
     }
 
     private CardType GetCardType()

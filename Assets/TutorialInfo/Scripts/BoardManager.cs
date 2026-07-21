@@ -773,6 +773,11 @@ public class BoardManager : NetworkBehaviour
             return false;
         }
 
+        if (IsFallingRocksCard(cardType) || IsTreasureMapCard(cardType))
+        {
+            return false;
+        }
+
         if (actionTargetPolicy.RequiresOtherPlayer(cardType))
         {
             return BeginActionTargetSelection(cardType);
@@ -786,6 +791,8 @@ public class BoardManager : NetworkBehaviour
     {
         if (!IsLocalPlayerTurn() ||
             !IsActionCard(cardType) ||
+            IsFallingRocksCard(cardType) ||
+            IsTreasureMapCard(cardType) ||
             !HasPlayer(targetClientId) ||
             !IsValidLocalActionTarget(cardType, targetClientId))
         {
@@ -795,6 +802,102 @@ public class BoardManager : NetworkBehaviour
         ClearActionTargetSelection();
         RequestPlayActionCardServerRpc(cardType, targetClientId, targetX, targetY);
         return true;
+    }
+
+    public bool TryPlayTreasureMapFromUI(CardType cardType, int targetX, int targetY)
+    {
+        if (NetworkManager.Singleton == null ||
+            !IsLocalPlayerTurn() ||
+            !IsTreasureMapCard(cardType) ||
+            !HasCardInHand(NetworkManager.Singleton.LocalClientId, cardType) ||
+            !TryGetHiddenGoalIndex(new Vector2Int(targetX, targetY), out _))
+        {
+            return false;
+        }
+
+        ClearActionTargetSelection();
+        RequestPlayTreasureMapServerRpc(cardType, targetX, targetY);
+        return true;
+    }
+
+    public bool TryGetHiddenGoalAtScreenPoint(
+        Vector2 screenPoint,
+        Camera eventCamera,
+        out int targetX,
+        out int targetY)
+    {
+        foreach (KeyValuePair<Vector2Int, CardView> entry in spawnedCards)
+        {
+            if (entry.Value == null ||
+                !TryGetHiddenGoalIndex(entry.Key, out _))
+            {
+                continue;
+            }
+
+            RectTransform cardRect = entry.Value.GetComponent<RectTransform>();
+            if (cardRect != null &&
+                RectTransformUtility.RectangleContainsScreenPoint(
+                    cardRect,
+                    screenPoint,
+                    eventCamera))
+            {
+                targetX = entry.Key.x;
+                targetY = entry.Key.y;
+                return true;
+            }
+        }
+
+        targetX = 0;
+        targetY = 0;
+        return false;
+    }
+
+    public bool TryPlayFallingRocksFromUI(CardType cardType, int targetX, int targetY)
+    {
+        if (NetworkManager.Singleton == null ||
+            !IsLocalPlayerTurn() ||
+            !IsFallingRocksCard(cardType) ||
+            !HasCardInHand(NetworkManager.Singleton.LocalClientId, cardType) ||
+            !TryGetRemovableRoadIndex(new Vector2Int(targetX, targetY), out _))
+        {
+            return false;
+        }
+
+        ClearActionTargetSelection();
+        RequestPlayFallingRocksServerRpc(cardType, targetX, targetY);
+        return true;
+    }
+
+    public bool TryGetRemovableRoadAtScreenPoint(
+        Vector2 screenPoint,
+        Camera eventCamera,
+        out int targetX,
+        out int targetY)
+    {
+        foreach (KeyValuePair<Vector2Int, CardView> entry in spawnedCards)
+        {
+            if (entry.Value == null ||
+                !TryGetRemovableRoadIndex(entry.Key, out _))
+            {
+                continue;
+            }
+
+            RectTransform cardRect = entry.Value.GetComponent<RectTransform>();
+            if (cardRect != null &&
+                RectTransformUtility.RectangleContainsScreenPoint(
+                    cardRect,
+                    screenPoint,
+                    eventCamera))
+            {
+                targetX = entry.Key.x;
+                targetY = entry.Key.y;
+                return true;
+            }
+        }
+
+        targetX = 0;
+        targetY = 0;
+        return false;
     }
 
     private bool isSelectingFallingRocks = false;
@@ -1193,6 +1296,8 @@ public class BoardManager : NetworkBehaviour
         ulong senderClientId = rpcParams.Receive.SenderClientId;
         if (!CanAct(senderClientId) ||
             !IsActionCard(cardType) ||
+            IsFallingRocksCard(cardType) ||
+            IsTreasureMapCard(cardType) ||
             !HasCardInHand(senderClientId, cardType) ||
             !HasPlayer(targetClientId) ||
             !actionTargetPolicy.IsValidTarget(cardType, senderClientId, targetClientId))
@@ -1205,6 +1310,101 @@ public class BoardManager : NetworkBehaviour
         ApplyActionEffect(senderClientId, cardType, targetClientId, targetPosition); //カードの効果を適応
         DrawCard(senderClientId);                    //カードを引く
         AdvanceTurn();                               //ターンを進める
+    }
+
+    [ServerRpc(RequireOwnership = false)]
+    private void RequestPlayTreasureMapServerRpc(
+        CardType cardType,
+        int targetX,
+        int targetY,
+        ServerRpcParams rpcParams = default)
+    {
+        ulong senderClientId = rpcParams.Receive.SenderClientId;
+        Vector2Int targetPosition = new Vector2Int(targetX, targetY);
+        if (!CanAct(senderClientId) ||
+            !IsTreasureMapCard(cardType) ||
+            !HasCardInHand(senderClientId, cardType) ||
+            !TryGetHiddenGoalIndex(targetPosition, out _))
+        {
+            RejectPlaceCardClientRpc(CreateTargetClientRpcParams(senderClientId));
+            return;
+        }
+
+        CardType revealedType = goalObjectiveService.GetRevealedCardType(targetPosition);
+        RemoveCardFromHand(senderClientId, cardType);
+        RevealGoalPrivatelyClientRpc(
+            targetX,
+            targetY,
+            revealedType,
+            CreateTargetClientRpcParams(senderClientId));
+        DrawCard(senderClientId);
+        AdvanceTurn();
+    }
+
+    [ClientRpc]
+    private void RevealGoalPrivatelyClientRpc(
+        int targetX,
+        int targetY,
+        CardType revealedType,
+        ClientRpcParams clientRpcParams = default)
+    {
+        StartCoroutine(ShowPrivateGoalPreview(
+            new Vector2Int(targetX, targetY),
+            revealedType));
+    }
+
+    private IEnumerator ShowPrivateGoalPreview(
+        Vector2Int goalPosition,
+        CardType revealedType)
+    {
+        if (!spawnedCards.TryGetValue(goalPosition, out CardView goalView) ||
+            goalView == null)
+        {
+            yield break;
+        }
+
+        goalView.SetCard(revealedType, true);
+        yield return new WaitForSeconds(3f);
+
+        if (!spawnedCards.TryGetValue(goalPosition, out goalView) ||
+            goalView == null)
+        {
+            yield break;
+        }
+
+        for (int i = 0; i < placedCards.Count; i++)
+        {
+            CardState current = placedCards[i];
+            if (current.x == goalPosition.x && current.y == goalPosition.y)
+            {
+                goalView.SetCard(current.cardType, current.isFlipped);
+                yield break;
+            }
+        }
+    }
+
+    [ServerRpc(RequireOwnership = false)]
+    private void RequestPlayFallingRocksServerRpc(
+        CardType cardType,
+        int targetX,
+        int targetY,
+        ServerRpcParams rpcParams = default)
+    {
+        ulong senderClientId = rpcParams.Receive.SenderClientId;
+        Vector2Int targetPosition = new Vector2Int(targetX, targetY);
+        if (!CanAct(senderClientId) ||
+            !IsFallingRocksCard(cardType) ||
+            !HasCardInHand(senderClientId, cardType) ||
+            !TryGetRemovableRoadIndex(targetPosition, out int roadIndex))
+        {
+            RejectPlaceCardClientRpc(CreateTargetClientRpcParams(senderClientId));
+            return;
+        }
+
+        RemoveCardFromHand(senderClientId, cardType);
+        placedCards.RemoveAt(roadIndex);
+        DrawCard(senderClientId);
+        AdvanceTurn();
     }
 
     //アクションカードの効果を適応する処理
@@ -1373,6 +1573,7 @@ public class BoardManager : NetworkBehaviour
                cardType == CardType.Udeadend ||
                cardType == CardType.ULRdeadend ||
                cardType == CardType.UDLload ||
+               cardType == CardType.UDRload ||
                cardType == CardType.DRload ||
                cardType == CardType.URload ||
                cardType == CardType.DLload ||
@@ -1381,7 +1582,34 @@ public class BoardManager : NetworkBehaviour
                cardType == CardType.DLRload ||
                cardType == CardType.ULRload ||
                cardType == CardType.LRload ||
-               cardType == CardType.UDLRload;
+               cardType == CardType.UDLRload ||
+               cardType == CardType.UDdeadend ||
+               cardType == CardType.DLloadHandkerchief ||
+               cardType == CardType.DRloadPocketwatch ||
+               cardType == CardType.ULRloadBucket ||
+               cardType == CardType.ULRloadMouse ||
+               cardType == CardType.UDLloadPot ||
+               cardType == CardType.UDLloadShoe ||
+               cardType == CardType.UDLRloadBone ||
+               cardType == CardType.UDLRloadCup ||
+               cardType == CardType.UDLRloadHat ||
+               cardType == CardType.LRloadSpoon ||
+               cardType == CardType.LRloadWheel ||
+               cardType == CardType.UDloadBucket ||
+               cardType == CardType.UDLdeadendHedgehog ||
+               cardType == CardType.UDdeadendFriedegg;
+    }
+
+    private static bool IsFallingRocksCard(CardType cardType)
+    {
+        return cardType == CardType.Fallingrocks ||
+               cardType == CardType.ActionFallingRocks;
+    }
+
+    private static bool IsTreasureMapCard(CardType cardType)
+    {
+        return cardType == CardType.Treasuremap ||
+               cardType == CardType.ActionMap;
     }
 
     //指定された位置にカードを置けるかを確認する
@@ -1667,21 +1895,42 @@ public class BoardManager : NetworkBehaviour
     //盤面からカードを削除する処理
     private void RemovePlacedCard(Vector2Int position)
     {
+        if (TryGetRemovableRoadIndex(position, out int roadIndex))
+        {
+            placedCards.RemoveAt(roadIndex);
+        }
+    }
+
+    private bool TryGetRemovableRoadIndex(Vector2Int position, out int roadIndex)
+    {
         for (int i = 0; i < placedCards.Count; i++)
         {
             CardState card = placedCards[i];
             if (card.x == position.x && card.y == position.y)
             {
-                placedCards.RemoveAt(i);
-                return;
-            }
-            if (card.cardType == CardType.Start ||
-   card.cardType == CardType.Goal ||
-   card.cardType == CardType.GoalGold)
-            {
-                return;
+                roadIndex = IsRoadCard(card.cardType) ? i : -1;
+                return roadIndex >= 0;
             }
         }
+
+        roadIndex = -1;
+        return false;
+    }
+
+    private bool TryGetHiddenGoalIndex(Vector2Int position, out int goalIndex)
+    {
+        for (int i = 0; i < placedCards.Count; i++)
+        {
+            CardState card = placedCards[i];
+            if (card.x == position.x && card.y == position.y)
+            {
+                goalIndex = card.cardType == CardType.Goal ? i : -1;
+                return goalIndex >= 0;
+            }
+        }
+
+        goalIndex = -1;
+        return false;
     }
     //カードを引く処理
     private void DrawCard(ulong clientId)

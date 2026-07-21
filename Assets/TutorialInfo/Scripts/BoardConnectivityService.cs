@@ -55,7 +55,8 @@ public sealed class BoardConnectivityService : IBoardConnectivityService
             }
             //隣のマスがスタートカードか、隣のマスからスタートカードに接続されている場合はtrueを返す
             if (neighbor.cardType == CardType.Start ||
-                ExistingCardConnectsToStart(neighborPosition, board))
+                (!CardRules.IsDeadEnd(neighbor.cardType) &&
+                 ExistingCardConnectsToStart(neighborPosition, board)))
             {
                 return true;
             }
@@ -97,11 +98,18 @@ public sealed class BoardConnectivityService : IBoardConnectivityService
                 return true;
             }
 
+            // 行き止まりカードは見た目に通路があっても、Goalへ到達する経路には使用しない。
+            if (CardRules.IsDeadEnd(currentCard.cardType))
+            {
+                continue;
+            }
+
             foreach (Vector2Int direction in Directions)//4方向をループ
             {
                 Vector2Int nextPosition = currentPosition + direction;//隣のマスの座標を計算
                 if (visited.Contains(nextPosition) ||                                                   //既に調べた場所
                     !board.TryGetValue(nextPosition, out CardState nextCard) ||                         //隣のマスにカードが置かれていない
+                    CardRules.IsDeadEnd(nextCard.cardType) ||                                           //行き止まりは経路として通過しない
                     !HasRoadConnection(currentCard.cardType, currentCard.rotated, direction, nextCard))//隣のマスと現在のマスが繋がっていない
                 {
                     continue;
