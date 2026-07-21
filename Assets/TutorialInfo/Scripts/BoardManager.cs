@@ -102,7 +102,7 @@ public class BoardManager : NetworkBehaviour
     private GameObject localRoleImageObject;
     private bool rolesAssigned;
     public static BoardManager Instance;
-
+    public bool selectingFallingRocks = false;
 
 
 
@@ -176,7 +176,7 @@ public class BoardManager : NetworkBehaviour
             }
 
             StartCoroutine(AssignRolesWhenPlayersReady());
-           
+
         }
 
         // ビューの初期化
@@ -262,7 +262,7 @@ public class BoardManager : NetworkBehaviour
         RegisterOrUpdatePlayer(clientId, playerName.ToString());
     }
 
-   
+
     private void RegisterOrUpdatePlayer(ulong clientId, string requestedName)
     {
         if (!IsServer)
@@ -779,10 +779,10 @@ public class BoardManager : NetworkBehaviour
         }
 
         ulong localClientId = NetworkManager.Singleton.LocalClientId;
-        return TryPlayActionCardFromUI(cardType, localClientId);
+        return TryPlayActionCardFromUI(cardType, localClientId, 0, 0);
     }
 
-    public bool TryPlayActionCardFromUI(CardType cardType, ulong targetClientId)
+    public bool TryPlayActionCardFromUI(CardType cardType, ulong targetClientId, int targetX, int targetY)
     {
         if (!IsLocalPlayerTurn() ||
             !IsActionCard(cardType) ||
@@ -793,8 +793,16 @@ public class BoardManager : NetworkBehaviour
         }
 
         ClearActionTargetSelection();
-        RequestPlayActionCardServerRpc(cardType, targetClientId);
+        RequestPlayActionCardServerRpc(cardType, targetClientId, targetX, targetY);
         return true;
+    }
+
+    private bool isSelectingFallingRocks = false;
+
+    public void StartFallingRocksSelection()
+    {
+        isSelectingFallingRocks = true;
+        Debug.Log("落石カード選択モード");
     }
 
     public bool IsValidLocalActionTarget(CardType cardType, ulong targetClientId)
@@ -851,7 +859,7 @@ public class BoardManager : NetworkBehaviour
             return false;
         }
 
-        return TryPlayActionCardFromUI(pendingTargetActionCard, targetClientId);
+        return TryPlayActionCardFromUI(pendingTargetActionCard, targetClientId, 0, 0);
     }
 
     private void ClearActionTargetSelection(bool refreshTurnText = true)
@@ -1090,10 +1098,10 @@ public class BoardManager : NetworkBehaviour
             RejectPlaceCardClientRpc(CreateTargetClientRpcParams(senderClientId));
             return;
         }
-        
-        
 
-       
+
+
+
         Vector2Int position = new Vector2Int(x, y);
 
         if (!CanPlaceCard(senderClientId, position, cardType, rotated))
@@ -1102,7 +1110,7 @@ public class BoardManager : NetworkBehaviour
             RejectPlaceCardClientRpc(CreateTargetClientRpcParams(senderClientId));
             return;
         }
-       
+
         RemoveCardFromHand(senderClientId, cardType); //手札からカードを削除
         //盤面にカードを追加
         placedCards.Add(new CardState(
@@ -1179,7 +1187,7 @@ public class BoardManager : NetworkBehaviour
     }
     //アクションカードをプレイする処理
     [ServerRpc(RequireOwnership = false)]
-    private void RequestPlayActionCardServerRpc(CardType cardType, ulong targetClientId, ServerRpcParams rpcParams = default)
+    private void RequestPlayActionCardServerRpc(CardType cardType, ulong targetClientId, int targetX, int targetY, ServerRpcParams rpcParams = default)
     {
 
         ulong senderClientId = rpcParams.Receive.SenderClientId;
@@ -1191,22 +1199,27 @@ public class BoardManager : NetworkBehaviour
         {
             return;
         }
+        Vector2Int targetPosition = new Vector2Int(targetX, targetY);
 
         RemoveCardFromHand(senderClientId, cardType);//手札からカードを削除
-        ApplyActionEffect(senderClientId, cardType, targetClientId); //カードの効果を適応
+        ApplyActionEffect(senderClientId, cardType, targetClientId, targetPosition); //カードの効果を適応
         DrawCard(senderClientId);                    //カードを引く
         AdvanceTurn();                               //ターンを進める
     }
 
     //アクションカードの効果を適応する処理
-    private void ApplyActionEffect(ulong senderId, CardType cardType, ulong targetClientId)
+    private void ApplyActionEffect(ulong senderId,
+    CardType cardType,
+    ulong targetClientId,
+        Vector2Int targetPosition
+   )
     {
         string targetName = GetPlayerName(targetClientId);
         switch (cardType)
         {
             case CardType.ActionFallingRocks:
             case CardType.Fallingrocks:
-                //落石の処理
+                RemovePlacedCard(targetPosition);
                 Debug.Log($"落盤対象: {targetName}");
                 break;
             case CardType.ActionMap:
@@ -1323,7 +1336,7 @@ public class BoardManager : NetworkBehaviour
         return null;
     }
 
-        [ServerRpc(RequireOwnership = false)]
+    [ServerRpc(RequireOwnership = false)]
     private void RequestDiscardAndDrawServerRpc(CardType cardType, ServerRpcParams rpcParams = default)
     {
         ulong senderClientId = rpcParams.Receive.SenderClientId;
@@ -1349,31 +1362,33 @@ public class BoardManager : NetworkBehaviour
         return cardType == CardType.PathStraight ||
                cardType == CardType.PathCorner ||
                cardType == CardType.PathTJunction ||
-               cardType == CardType.PathCross     ||
-               cardType == CardType.DeadEnd       ||
-               cardType == CardType.LRdeadend     ||
-               cardType == CardType.LDdeadend     ||
-               cardType == CardType.UDLRdeadend   ||
-               cardType == CardType.UDLdeadend    ||
-               cardType == CardType.RDdeadend     ||
-               cardType == CardType.Ldeadend      ||
-               cardType == CardType.Udeadend      ||
-               cardType == CardType.ULRdeadend    ||
-               cardType == CardType.UDLload       ||
-               cardType == CardType.DRload        ||
-               cardType == CardType.URload        ||
-               cardType == CardType.DLload        ||
-               cardType == CardType.ULload        ||
-               cardType == CardType.UDload        ||
-               cardType == CardType.DLRload       ||
-               cardType == CardType.ULRload       ||
-               cardType == CardType.LRload        ||
+               cardType == CardType.PathCross ||
+               cardType == CardType.DeadEnd ||
+               cardType == CardType.LRdeadend ||
+               cardType == CardType.LDdeadend ||
+               cardType == CardType.UDLRdeadend ||
+               cardType == CardType.UDLdeadend ||
+               cardType == CardType.RDdeadend ||
+               cardType == CardType.Ldeadend ||
+               cardType == CardType.Udeadend ||
+               cardType == CardType.ULRdeadend ||
+               cardType == CardType.UDLload ||
+               cardType == CardType.DRload ||
+               cardType == CardType.URload ||
+               cardType == CardType.DLload ||
+               cardType == CardType.ULload ||
+               cardType == CardType.UDload ||
+               cardType == CardType.DLRload ||
+               cardType == CardType.ULRload ||
+               cardType == CardType.LRload ||
                cardType == CardType.UDLRload;
     }
 
     //指定された位置にカードを置けるかを確認する
     private bool CanPlaceCard(ulong clientId, Vector2Int position, CardType cardType, bool rotated)
     {
+        bool hasNormalRoadConnection = false;
+        bool hasDeadEndConnection = false;
         // 道カードを置くには、自分の道具が壊れていない必要があります。
         if (IsRoadCard(cardType))
         {
@@ -1393,7 +1408,38 @@ public class BoardManager : NetworkBehaviour
         // 現在の盤面リストの中身をすべて表示
         foreach (var card in placedCards)
         {
-            Debug.Log($"[CheckList] 盤面にあるカード: Type={card.cardType}, Pos=({card.x}, {card.y})");
+            Vector2Int neighborPos = new Vector2Int(card.x, card.y);
+
+            // 上下左右のみ確認
+            if (Vector2Int.Distance(position, neighborPos) != 1)
+                continue;
+
+            Vector2Int direction = neighborPos - position;//
+
+            PathDirection newCardPaths =
+       CardRules.GetRotatedPaths(cardType, rotated);
+
+            PathDirection neighborPaths =
+                CardRules.GetRotatedPaths(
+                    card.cardType,
+                    card.rotated
+                );
+
+            if (CardRules.HasRoadConnection(
+               newCardPaths,
+        CardRules.GetPathDirection(direction),
+        neighborPaths,
+        CardRules.GetOppositePathDirection(direction)))
+            {
+                if (CardRules.IsDeadEnd(card.cardType))
+                {
+                    hasDeadEndConnection = true;
+                }
+                else
+                {
+                    hasNormalRoadConnection = true;
+                }
+            }
         }
         if (placedCards.Count == 0)
         {
@@ -1404,6 +1450,12 @@ public class BoardManager : NetworkBehaviour
         if (HasCardAt(position)) //カードが置かれているか
         {
             Debug.Log("失敗: 既にカードがあります");
+            return false;
+        }
+
+        if (!hasNormalRoadConnection && hasDeadEndConnection)
+        {
+            Debug.Log("失敗: DeadEndにしか接続していません");
             return false;
         }
 
@@ -1430,7 +1482,7 @@ public class BoardManager : NetworkBehaviour
 
 
         return true;
-       
+
     }
 
     private List<CardState> CreatePlacedCardsSnapshot()
@@ -1599,7 +1651,7 @@ public class BoardManager : NetworkBehaviour
     //カードを手札から削除する処理
     private bool RemoveCardFromHand(ulong clientId, CardType cardType)
     {
-        for (int i = 0; i < dealtCards.Count; i++)
+        for (int i = 0; i < dealtCards.Count; i++)//手札を順番に調べる
         {
             if (dealtCards[i].ownerClientId == clientId && dealtCards[i].cardType == cardType)
             {
@@ -1608,10 +1660,30 @@ public class BoardManager : NetworkBehaviour
                 return true;
             }
         }
+
         return false;
     }
 
- //カードを引く処理
+    //盤面からカードを削除する処理
+    private void RemovePlacedCard(Vector2Int position)
+    {
+        for (int i = 0; i < placedCards.Count; i++)
+        {
+            CardState card = placedCards[i];
+            if (card.x == position.x && card.y == position.y)
+            {
+                placedCards.RemoveAt(i);
+                return;
+            }
+            if (card.cardType == CardType.Start ||
+   card.cardType == CardType.Goal ||
+   card.cardType == CardType.GoalGold)
+            {
+                return;
+            }
+        }
+    }
+    //カードを引く処理
     private void DrawCard(ulong clientId)
     {
         //山札の状態を確認
@@ -1671,7 +1743,7 @@ public class BoardManager : NetworkBehaviour
     //ゲーム終了処理
     private void EndGame()
     {
-      
+
         gameEnded.Value = true;
 
         // 全クライアントに対してシーン遷移を命令
@@ -1716,7 +1788,7 @@ public class BoardManager : NetworkBehaviour
     //ますにかーどがあるかどうかを確認する
     private bool IsCellEmpty(int x, int y)
     {
-       
+
         return !HasCardAt(new Vector2Int(x, y));
     }
 
@@ -1770,13 +1842,13 @@ public class BoardManager : NetworkBehaviour
             return;
         }
 
-     if(players.Count == 0)
-     {
+        if (players.Count == 0)
+        {
             turnText.text = "ラウンド 1\n待機中";
             return;
-     }
+        }
 
-        int safeIndex = Mathf.Clamp(currentPlayerIndex.Value,0, players.Count - 1);  //playerの人数の制限(範囲:最小0,最大player-1)
+        int safeIndex = Mathf.Clamp(currentPlayerIndex.Value, 0, players.Count - 1);  //playerの人数の制限(範囲:最小0,最大player-1)
         string currentName = players[safeIndex].playerName.ToString();                //現在のターンのplayerの名前
         string localTurnLine = NetworkManager.Singleton != null &&                    //ネットワークマネージャーが存在する場合
                            players[safeIndex].clientId == NetworkManager.Singleton.LocalClientId
@@ -1811,11 +1883,11 @@ public class BoardManager : NetworkBehaviour
             canvasGroup = card.gameObject.AddComponent<CanvasGroup>();
         }
 
-       
+
         canvasGroup.interactable = isInteractable;   //入力システムの無効化
         canvasGroup.blocksRaycasts = isInteractable; //マウスの判定の無効化
     }
-    
+
     //アクションカードかどうかを判定する
     public static bool IsActionCard(CardType cardType)
     {
@@ -1939,7 +2011,7 @@ public class BoardManager : NetworkBehaviour
                 : new Vector3(state.x * cellSize, state.y * cellSize, 0f);
         }
 
-        cardView.SetCard(state.cardType,state.isFlipped);
+        cardView.SetCard(state.cardType, state.isFlipped);
         spawnedCards.Add(position, cardView);
     }
 

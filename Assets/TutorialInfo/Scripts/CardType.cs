@@ -36,6 +36,22 @@ public enum CardType
     UDdeadend,      // 上下行き止まり 
     Udeadend,       // 上行き止まり   
     UDLRdeadend,    // 全方向行き止まり
+
+    // 小物類有り
+    DLloadHandkerchief,     // L字-2 ハンカチ
+    DRloadPocketwatch,      // L字-3 懐中時計
+    ULRloadBucket,          // T字路(横)-2 バケツ
+    ULRloadMouse,           // T字路(横)-2 ネズミ
+    UDLloadPot,             // T字路(縦)-2 ポット
+    UDLloadShoe,            // T字路(縦)-2 靴
+    UDLRloadBone,           // 十字路 骨
+    UDLRloadCup,            // 十字路 カップ
+    UDLRloadHat,            // 十字路 帽子
+    LRloadSpoon,            // 直線(横) スプーン
+    LRloadWheel,            // 直線(横) 車輪
+    UDloadBucket,           // 直線(縦) バケツ
+    UDLdeadendHedgehog,     // 右以外行き止まり ハリネズミ
+    UDdeadendFriedegg,      // 上下行き止まり 目玉焼き
     // アクションカード
     Lanternrepaire, // ランタン修理
     Lanternban,     // ランタン破壊

@@ -40,6 +40,22 @@ public static class CardRules
             CardType.UDLRload => PathDirection.Up | PathDirection.Down | PathDirection.Left | PathDirection.Right,
             CardType.LRload => PathDirection.Left | PathDirection.Right,
             CardType.UDload => PathDirection.Up | PathDirection.Down,
+
+            // 小物類有り
+            CardType.DLloadHandkerchief => PathDirection.Down | PathDirection.Left,
+            CardType.DRloadPocketwatch => PathDirection.Down | PathDirection.Right,
+            CardType.ULRloadBucket => PathDirection.Up | PathDirection.Left | PathDirection.Right,
+            CardType.ULRloadMouse => PathDirection.Up | PathDirection.Left | PathDirection.Right,
+            CardType.UDLloadPot => PathDirection.Up | PathDirection.Down | PathDirection.Left,
+            CardType.UDLloadShoe => PathDirection.Up | PathDirection.Down | PathDirection.Left,
+            CardType.UDLRloadBone => PathDirection.Up | PathDirection.Down | PathDirection.Left | PathDirection.Right,
+            CardType.UDLRloadCup => PathDirection.Up | PathDirection.Down | PathDirection.Left | PathDirection.Right,
+            CardType.UDLRloadHat => PathDirection.Up | PathDirection.Down | PathDirection.Left | PathDirection.Right,
+            CardType.LRloadSpoon => PathDirection.Left | PathDirection.Right,
+            CardType.LRloadWheel => PathDirection.Left | PathDirection.Right,
+            CardType.UDloadBucket => PathDirection.Up | PathDirection.Down,
+            CardType.UDLdeadendHedgehog => PathDirection.Up | PathDirection.Down | PathDirection.Left,
+            CardType.UDdeadendFriedegg => PathDirection.Up | PathDirection.Down,
             // 行き止まり
             CardType.UDLdeadend => PathDirection.Up | PathDirection.Down | PathDirection.Left,
             CardType.ULRdeadend => PathDirection.Up | PathDirection.Left | PathDirection.Right,
@@ -50,14 +66,14 @@ public static class CardRules
             CardType.UDdeadend => PathDirection.Up | PathDirection.Down,
             CardType.Udeadend => PathDirection.Up,
             CardType.UDLRdeadend => PathDirection.Up | PathDirection.Down | PathDirection.Left | PathDirection.Right,
-            
+
             //CardType.PathStraight => PathDirection.Up | PathDirection.Down,
             //CardType.PathCorner => PathDirection.Up | PathDirection.Right,
             //CardType.PathTJunction => PathDirection.Up | PathDirection.Down | PathDirection.Right,
             //CardType.PathCross => PathDirection.Up | PathDirection.Down | PathDirection.Left | PathDirection.Right,
             //CardType.DeadEnd => PathDirection.Up,
-            
-            _ => PathDirection.None 
+
+            _ => PathDirection.None
         };
     }
 
@@ -78,58 +94,58 @@ public static class CardRules
 
     public static bool CanPlaceCard(Vector2Int targetPos, CardType newCardType, bool rotated, NetworkList<CardState> placedCards)
     {
-        
 
-            foreach (var card in placedCards)
+
+        foreach (var card in placedCards)
+        {
+            if (card.x == targetPos.x && card.y == targetPos.y)
             {
-                if (card.x == targetPos.x && card.y == targetPos.y)
+                return false;
+            }
+        }
+
+        // Check road connectivity against adjacent cards.
+        PathDirection newCardPaths = GetRotatedPaths(newCardType, rotated);
+        bool hasNeighbor = false;
+        bool hasRoadConnection = false;
+
+        // Check four directions around the target cell.
+        foreach (var direction in new[] { Vector2Int.up, Vector2Int.down, Vector2Int.left, Vector2Int.right })
+        {
+            Vector2Int neighborPos = targetPos + direction;
+
+
+            CardState? neighbor = null;
+            foreach (var c in placedCards)
+            {
+                if (c.x == neighborPos.x && c.y == neighborPos.y)
                 {
-                    return false;
+                    neighbor = c;
+                    break;
                 }
             }
 
-            // Check road connectivity against adjacent cards.
-            PathDirection newCardPaths = GetRotatedPaths(newCardType, rotated);
-            bool hasNeighbor = false;
-            bool hasRoadConnection = false;
-
-            // Check four directions around the target cell.
-            foreach (var direction in new[] { Vector2Int.up, Vector2Int.down, Vector2Int.left, Vector2Int.right })
+            if (neighbor != null)
             {
-                Vector2Int neighborPos = targetPos + direction;
+                hasNeighbor = true;
+                PathDirection neighborPaths = GetRotatedPaths(neighbor.Value.cardType, neighbor.Value.rotated);
 
+                // Validate each directional edge.
+                if (direction == Vector2Int.up && !IsConnected(newCardPaths, PathDirection.Up, neighborPaths, PathDirection.Down)) return false;
+                if (direction == Vector2Int.down && !IsConnected(newCardPaths, PathDirection.Down, neighborPaths, PathDirection.Up)) return false;
+                if (direction == Vector2Int.left && !IsConnected(newCardPaths, PathDirection.Left, neighborPaths, PathDirection.Right)) return false;
+                if (direction == Vector2Int.right && !IsConnected(newCardPaths, PathDirection.Right, neighborPaths, PathDirection.Left)) return false;
 
-                CardState? neighbor = null;
-                foreach (var c in placedCards)
-                {
-                    if (c.x == neighborPos.x && c.y == neighborPos.y)
-                    {
-                        neighbor = c;
-                        break;
-                    }
-                }
-
-                if (neighbor != null)
-                {
-                    hasNeighbor = true;
-                    PathDirection neighborPaths = GetRotatedPaths(neighbor.Value.cardType, neighbor.Value.rotated);
-
-                    // Validate each directional edge.
-                    if (direction == Vector2Int.up && !IsConnected(newCardPaths, PathDirection.Up, neighborPaths, PathDirection.Down)) return false;
-                    if (direction == Vector2Int.down && !IsConnected(newCardPaths, PathDirection.Down, neighborPaths, PathDirection.Up)) return false;
-                    if (direction == Vector2Int.left && !IsConnected(newCardPaths, PathDirection.Left, neighborPaths, PathDirection.Right)) return false;
-                    if (direction == Vector2Int.right && !IsConnected(newCardPaths, PathDirection.Right, neighborPaths, PathDirection.Left)) return false;
-
-                    if (direction == Vector2Int.up && HasRoadConnection(newCardPaths, PathDirection.Up, neighborPaths, PathDirection.Down)) hasRoadConnection = true;
-                    if (direction == Vector2Int.down && HasRoadConnection(newCardPaths, PathDirection.Down, neighborPaths, PathDirection.Up)) hasRoadConnection = true;
-                    if (direction == Vector2Int.left && HasRoadConnection(newCardPaths, PathDirection.Left, neighborPaths, PathDirection.Right)) hasRoadConnection = true;
-                    if (direction == Vector2Int.right && HasRoadConnection(newCardPaths, PathDirection.Right, neighborPaths, PathDirection.Left)) hasRoadConnection = true;
-                }
+                if (direction == Vector2Int.up && HasRoadConnection(newCardPaths, PathDirection.Up, neighborPaths, PathDirection.Down)) hasRoadConnection = true;
+                if (direction == Vector2Int.down && HasRoadConnection(newCardPaths, PathDirection.Down, neighborPaths, PathDirection.Up)) hasRoadConnection = true;
+                if (direction == Vector2Int.left && HasRoadConnection(newCardPaths, PathDirection.Left, neighborPaths, PathDirection.Right)) hasRoadConnection = true;
+                if (direction == Vector2Int.right && HasRoadConnection(newCardPaths, PathDirection.Right, neighborPaths, PathDirection.Left)) hasRoadConnection = true;
             }
+        }
 
 
-            return hasNeighbor && hasRoadConnection;
-        
+        return hasNeighbor && hasRoadConnection;
+
     }
 
     private static bool IsConnected(PathDirection aPaths, PathDirection aDir, PathDirection bPaths, PathDirection bDir)
@@ -141,15 +157,68 @@ public static class CardRules
         bool aHasPath = (aPaths & aDir) != 0;
         bool bHasPath = (bPaths & bDir) != 0;
 
-        // 「片方に道があり、もう片方にない」という矛盾（道が壁に突き当たっている状態）のみ拒否する
+        // 片方に道があり、もう片方にない道が壁に突き当たっている状態のみ拒否
         if (aHasPath != bHasPath) return false;
 
-        // それ以外（道同士、または壁同士）はOK
+
         return true;
     }
 
-    private static bool HasRoadConnection(PathDirection aPaths, PathDirection aDir, PathDirection bPaths, PathDirection bDir)
+    public static bool HasRoadConnection(PathDirection aPaths, PathDirection aDir, PathDirection bPaths, PathDirection bDir)
     {
         return (aPaths & aDir) != 0 && (bPaths & bDir) != 0;
+    }
+
+    public static PathDirection GetPathDirection(Vector2Int direction)
+    {
+        if (direction == Vector2Int.up)
+            return PathDirection.Up;
+
+        if (direction == Vector2Int.down)
+            return PathDirection.Down;
+
+        if (direction == Vector2Int.left)
+            return PathDirection.Left;
+
+        if (direction == Vector2Int.right)
+            return PathDirection.Right;
+
+        return PathDirection.None;
+    }
+
+    public static PathDirection GetOppositePathDirection(Vector2Int direction)
+    {
+        if (direction == Vector2Int.up)
+            return PathDirection.Down;
+
+        if (direction == Vector2Int.down)
+            return PathDirection.Up;
+
+        if (direction == Vector2Int.left)
+            return PathDirection.Right;
+
+        if (direction == Vector2Int.right)
+            return PathDirection.Left;
+
+        return PathDirection.None;
+    }
+
+    public static bool IsDeadEnd(CardType type)
+    {
+        return type switch
+        {
+            CardType.UDLdeadend => true,
+            CardType.ULRdeadend => true,
+            CardType.RDdeadend => true,
+            CardType.LDdeadend => true,
+            CardType.LRdeadend => true,
+            CardType.Ldeadend => true,
+            CardType.UDdeadend => true,
+            CardType.Udeadend => true,
+            CardType.UDLRdeadend => true,
+            CardType.UDLdeadendHedgehog => true,
+            CardType.UDdeadendFriedegg => true,
+            _ => false
+        };
     }
 }

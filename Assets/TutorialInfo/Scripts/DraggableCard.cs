@@ -60,7 +60,7 @@ public class DraggableCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
             anchoredPositionBeforeDrag = rectTransform.anchoredPosition;
         }
 
-        
+
         GetOrAddCanvasGroup().blocksRaycasts = false;
         isDragging = true;
         rotationController.SetDragging(true);
@@ -132,7 +132,7 @@ public class DraggableCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
             if (targetPlayer != null)
             {
                 Debug.Log($"[Client] アクションカード対象: {targetPlayer.ClientId}");
-                bool actionRequested = BoardManager.Instance.TryPlayActionCardFromUI(GetCardType(), targetPlayer.ClientId);
+                bool actionRequested = BoardManager.Instance.TryPlayActionCardFromUI(GetCardType(), targetPlayer.ClientId, 0, 0);
                 if (actionRequested)
                 {
                     return;
@@ -304,6 +304,15 @@ public class DraggableCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
             BoardManager.Instance.TryPlayActionCardFromUI(GetCardType());
             return;
         }
+
+        // 落石カードの場合
+        if (GetCardType() == CardType.Fallingrocks ||
+            GetCardType() == CardType.ActionFallingRocks)
+        {
+            BoardManager.Instance.StartFallingRocksSelection();
+            return;
+        }
+
 
         if (eventData.button == PointerEventData.InputButton.Right)
         {
