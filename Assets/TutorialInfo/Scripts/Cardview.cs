@@ -42,7 +42,23 @@ public class CardView : MonoBehaviour
     [SerializeField] private Sprite UDLRload;       // 十字路
     [SerializeField] private Sprite UDload;         // 直線(縦)
     [SerializeField] private Sprite LRload;         // 直線(横)
-    
+
+    [Header("On-Props Sprites")]
+    [SerializeField] private Sprite DLloadHandkerchief;     // L字-2 ハンカチ
+    [SerializeField] private Sprite DRloadPocketwatch;      // L字-3 懐中時計
+    [SerializeField] private Sprite ULRloadBucket;          // T字路(横)-2 バケツ
+    [SerializeField] private Sprite ULRloadMouse;           // T字路(横)-2 ネズミ
+    [SerializeField] private Sprite UDLloadPot;             // T字路(縦)-2 鍋
+    [SerializeField] private Sprite UDLloadShoe;            // T字路(縦)-2 靴
+    [SerializeField] private Sprite UDLRloadBone;           // 十字路 骨
+    [SerializeField] private Sprite UDLRloadCup;            // 十字路 カップ
+    [SerializeField] private Sprite UDLRloadHat;            // 十字路 帽子
+    [SerializeField] private Sprite LRloadSpoon;            // 直線(横) スプーン
+    [SerializeField] private Sprite LRloadWheel;            // 直線(横) 車輪
+    [SerializeField] private Sprite UDloadBucket;           // 直線(縦) バケツ
+    [SerializeField] private Sprite UDLdeadendHedgehog;     // 右以外行き止まり ハリネズミ
+    [SerializeField] private Sprite UDdeadendFriedegg;      // 上下行き止まり 目玉焼き
+
     [Header("Action Sprites")]
     [SerializeField] private Sprite Lanternrepaire;
     [SerializeField] private Sprite Lanternban;
@@ -74,7 +90,7 @@ public class CardView : MonoBehaviour
             cardArtImage.sprite = goalBackSprite;
             return;
         }
-       
+
 
         switch (type)
         {
@@ -115,6 +131,22 @@ public class CardView : MonoBehaviour
             case CardType.UDRload: cardArtImage.sprite = UDRload; break;
             case CardType.LRload: cardArtImage.sprite = LRload; break;
             case CardType.UDLRload: cardArtImage.sprite = UDLRload; break;
+
+            // --- On-Props cards ---
+            case CardType.DLloadHandkerchief: cardArtImage.sprite = DLloadHandkerchief; break;
+            case CardType.DRloadPocketwatch: cardArtImage.sprite = DRloadPocketwatch; break;
+            case CardType.ULRloadBucket: cardArtImage.sprite = ULRloadBucket; break;
+            case CardType.ULRloadMouse: cardArtImage.sprite = ULRloadMouse; break;
+            case CardType.UDLloadPot: cardArtImage.sprite = UDLloadPot; break;
+            case CardType.UDLloadShoe: cardArtImage.sprite = UDLloadShoe; break;
+            case CardType.UDLRloadBone: cardArtImage.sprite = UDLRloadBone; break;
+            case CardType.UDLRloadCup: cardArtImage.sprite = UDLRloadCup; break;
+            case CardType.UDLRloadHat: cardArtImage.sprite = UDLRloadHat; break;
+            case CardType.LRloadSpoon: cardArtImage.sprite = LRloadSpoon; break;
+            case CardType.LRloadWheel: cardArtImage.sprite = LRloadWheel; break;
+            case CardType.UDloadBucket: cardArtImage.sprite = UDloadBucket; break;
+            case CardType.UDLdeadendHedgehog: cardArtImage.sprite = UDLdeadendHedgehog; break;
+            case CardType.UDdeadendFriedegg: cardArtImage.sprite = UDdeadendFriedegg; break;
 
             // --- Action cards ---
             case CardType.Lanternrepaire: cardArtImage.sprite = Lanternrepaire; break;

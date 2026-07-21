@@ -1404,6 +1404,7 @@ MonoBehaviour:
   myTurnPosition: {fileID: 1884885111}
   waitingPosition: {fileID: 641802372}
   deckComposition: []
+  selectingFallingRocks: 0
   handRootPrefab: {fileID: 869670466}
 --- !u!4 &992736708
 Transform:
@@ -2548,6 +2549,10 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 21300000, guid: d844790dee96ab84ea54c03bd1388d83, type: 3}
     - target: {fileID: 3218219355869854588, guid: b5532de47e2f30a44bc0dc145f2fe4b0, type: 3}
+      propertyPath: UDLloadPot
+      value: 
+      objectReference: {fileID: 21300000, guid: 8ea9f58a5b4f9154fa44083b71533283, type: 3}
+    - target: {fileID: 3218219355869854588, guid: b5532de47e2f30a44bc0dc145f2fe4b0, type: 3}
       propertyPath: ULRdeadend
       value: 
       objectReference: {fileID: 21300000, guid: fdf0f92cdd9dbe54bb506ec574c57661, type: 3}
@@ -2556,9 +2561,29 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 21300000, guid: 33785587b6cd3614d8f2047aadaefae9, type: 3}
     - target: {fileID: 3218219355869854588, guid: b5532de47e2f30a44bc0dc145f2fe4b0, type: 3}
+      propertyPath: LRloadSpoon
+      value: 
+      objectReference: {fileID: 21300000, guid: a0a75c478392e2f48a88af3986858887, type: 3}
+    - target: {fileID: 3218219355869854588, guid: b5532de47e2f30a44bc0dc145f2fe4b0, type: 3}
+      propertyPath: LRloadWheel
+      value: 
+      objectReference: {fileID: 21300000, guid: b4657d2165992e04c84602e3a864b1c1, type: 3}
+    - target: {fileID: 3218219355869854588, guid: b5532de47e2f30a44bc0dc145f2fe4b0, type: 3}
       propertyPath: UDLRdeadend
       value: 
       objectReference: {fileID: 21300000, guid: fdf0f92cdd9dbe54bb506ec574c57661, type: 3}
+    - target: {fileID: 3218219355869854588, guid: b5532de47e2f30a44bc0dc145f2fe4b0, type: 3}
+      propertyPath: UDLRloadCup
+      value: 
+      objectReference: {fileID: 21300000, guid: 2fe624932a583aa4cac730ab29f95f01, type: 3}
+    - target: {fileID: 3218219355869854588, guid: b5532de47e2f30a44bc0dc145f2fe4b0, type: 3}
+      propertyPath: UDLRloadHat
+      value: 
+      objectReference: {fileID: 21300000, guid: bddc77bc8a641504ca4afdd7fb482635, type: 3}
+    - target: {fileID: 3218219355869854588, guid: b5532de47e2f30a44bc0dc145f2fe4b0, type: 3}
+      propertyPath: UDLloadShoe
+      value: 
+      objectReference: {fileID: 21300000, guid: 4fa869bd5e605734ea38c65fce9ab4a0, type: 3}
     - target: {fileID: 3218219355869854588, guid: b5532de47e2f30a44bc0dc145f2fe4b0, type: 3}
       propertyPath: treasuremap
       value: 
@@ -2568,9 +2593,25 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 21300000, guid: 17376636f98ade948b15e62528b71ab8, type: 3}
     - target: {fileID: 3218219355869854588, guid: b5532de47e2f30a44bc0dc145f2fe4b0, type: 3}
+      propertyPath: UDLRloadBone
+      value: 
+      objectReference: {fileID: 21300000, guid: 4f9444a671bc3214abf5c93b1bbadbf0, type: 3}
+    - target: {fileID: 3218219355869854588, guid: b5532de47e2f30a44bc0dc145f2fe4b0, type: 3}
+      propertyPath: UDloadBucket
+      value: 
+      objectReference: {fileID: 21300000, guid: c92f4cc1fad7d2e47964fe9faaffeca0, type: 3}
+    - target: {fileID: 3218219355869854588, guid: b5532de47e2f30a44bc0dc145f2fe4b0, type: 3}
+      propertyPath: ULRloadMouse
+      value: 
+      objectReference: {fileID: 21300000, guid: 421fac3fc0936ea42a64044c06943ead, type: 3}
+    - target: {fileID: 3218219355869854588, guid: b5532de47e2f30a44bc0dc145f2fe4b0, type: 3}
       propertyPath: cardArtImage
       value: 
       objectReference: {fileID: 5188160218178999142}
+    - target: {fileID: 3218219355869854588, guid: b5532de47e2f30a44bc0dc145f2fe4b0, type: 3}
+      propertyPath: ULRloadBucket
+      value: 
+      objectReference: {fileID: 21300000, guid: ce44b0057ea8e74418db7a55e3a940c0, type: 3}
     - target: {fileID: 3218219355869854588, guid: b5532de47e2f30a44bc0dc145f2fe4b0, type: 3}
       propertyPath: Lanternrepaire
       value: 
@@ -2591,6 +2632,22 @@ PrefabInstance:
       propertyPath: railcarrepaire
       value: 
       objectReference: {fileID: 21300000, guid: 1917c880b2595f042a5ba57ff78c44af, type: 3}
+    - target: {fileID: 3218219355869854588, guid: b5532de47e2f30a44bc0dc145f2fe4b0, type: 3}
+      propertyPath: DRloadPocketwatch
+      value: 
+      objectReference: {fileID: 21300000, guid: f99d1695dd5d39c42bb9bad0a61089a5, type: 3}
+    - target: {fileID: 3218219355869854588, guid: b5532de47e2f30a44bc0dc145f2fe4b0, type: 3}
+      propertyPath: UDdeadendFriedegg
+      value: 
+      objectReference: {fileID: 21300000, guid: 89c8c4bcfcfeb2c4c9b39ed273ddfdf2, type: 3}
+    - target: {fileID: 3218219355869854588, guid: b5532de47e2f30a44bc0dc145f2fe4b0, type: 3}
+      propertyPath: DLloadHandkerchief
+      value: 
+      objectReference: {fileID: 21300000, guid: dbf7f6914b9e6bf47b8ad2884e0edff0, type: 3}
+    - target: {fileID: 3218219355869854588, guid: b5532de47e2f30a44bc0dc145f2fe4b0, type: 3}
+      propertyPath: UDLdeadendHedgehog
+      value: 
+      objectReference: {fileID: 21300000, guid: a9dfa56b61ae77e4a87dad2bdda4b6c7, type: 3}
     - target: {fileID: 3218219355869854588, guid: b5532de47e2f30a44bc0dc145f2fe4b0, type: 3}
       propertyPath: goalEmptyTopSprite
       value: 
@@ -2632,10 +2689,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 579876597}
     m_Modifications:
-    - target: {fileID: 6397706224009382485, guid: 98aab64553f84c74bbcff20ab7fe93ec, type: 3}
-      propertyPath: m_IsActive
-      value: 0
-      objectReference: {fileID: 0}
     - target: {fileID: 353070224350181929, guid: 98aab64553f84c74bbcff20ab7fe93ec, type: 3}
       propertyPath: m_Pivot.x
       value: 0.5
@@ -2743,6 +2796,10 @@ PrefabInstance:
     - target: {fileID: 6397706224009382485, guid: 98aab64553f84c74bbcff20ab7fe93ec, type: 3}
       propertyPath: m_Name
       value: Playerlist
+      objectReference: {fileID: 0}
+    - target: {fileID: 6397706224009382485, guid: 98aab64553f84c74bbcff20ab7fe93ec, type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 7831945672581432727, guid: 98aab64553f84c74bbcff20ab7fe93ec, type: 3}
       propertyPath: nameText
