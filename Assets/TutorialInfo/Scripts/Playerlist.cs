@@ -54,8 +54,8 @@ public class PlayerDisplay : NetworkBehaviour, IPointerClickHandler
             nameText.richText = true;
             nameText.alignment = TextAlignmentOptions.MidlineLeft;
             nameText.enableWordWrapping = true;
-            nameText.fontSizeMin = 18f;
-            nameText.fontSizeMax = Mathf.Max(nameText.fontSize, 26f);
+            nameText.fontSizeMin = 30f;
+            nameText.fontSizeMax = Mathf.Max(nameText.fontSize, 35f);
             nameText.enableAutoSizing = true;
             nameText.lineSpacing = 6f;
             nameText.margin = new Vector4(14f, 6f, 14f, 6f);
@@ -121,7 +121,7 @@ public class PlayerDisplay : NetworkBehaviour, IPointerClickHandler
         string pickaxeIcon = isPickaxeBroken ? "PickaxeBroken" : "PickaxeNormal";
         string railcarIcon = isRailcarBroken ? "RailcarBroken" : "RailcarNormal";
 
-        return $"<size=70%><sprite name=\"{lanternIcon}\"> " +
+        return $"<size=120%><sprite name=\"{lanternIcon}\"> " +
                $"<sprite name=\"{pickaxeIcon}\"> " +
                $"<sprite name=\"{railcarIcon}\"></size>";
     }
