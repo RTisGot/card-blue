@@ -1,7 +1,9 @@
+using System.Collections;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 using TMPro;
+using Unity.Collections;
 using Unity.Netcode;
 using Unity.Netcode.Transports.UTP;
 using Unity.Services.Authentication;
@@ -39,6 +41,7 @@ public class RelayManager : MonoBehaviour
     [SerializeField] private TMP_Text[] participantNameTexts;
 
     private const int MaxConnections = 4;
+    private const string ParticipantNamesMessageName = "ParticipantNames";
     private string hostRoomPassword = "";
     private string pendingJoinRoomId = "";
     private bool isStartingConnection;
@@ -83,7 +86,26 @@ public class RelayManager : MonoBehaviour
             NetworkManager.Singleton.OnClientConnectedCallback -= OnClientConnected;
             NetworkManager.Singleton.OnClientDisconnectCallback -= OnClientDisconnected;
             NetworkManager.Singleton.ConnectionApprovalCallback -= ApprovalCheck;
+            if (NetworkManager.Singleton.CustomMessagingManager != null)
+            {
+                NetworkManager.Singleton.CustomMessagingManager.UnregisterNamedMessageHandler(
+                    ParticipantNamesMessageName);
+            }
         }
+    }
+
+    private void RegisterParticipantNamesMessageHandler()
+    {
+        if (NetworkManager.Singleton?.CustomMessagingManager == null)
+        {
+            return;
+        }
+
+        NetworkManager.Singleton.CustomMessagingManager.UnregisterNamedMessageHandler(
+            ParticipantNamesMessageName);
+        NetworkManager.Singleton.CustomMessagingManager.RegisterNamedMessageHandler(
+            ParticipantNamesMessageName,
+            OnParticipantNamesMessage);
     }
 
     public async void OnClick_StartHost()
@@ -105,6 +127,7 @@ public class RelayManager : MonoBehaviour
             RegisterNetworkCallbacks(true);
             if (NetworkManager.Singleton.StartHost())
             {
+                RegisterParticipantNamesMessageHandler();
                 PlayerNamesByClientId.Clear();
                 PlayerNamesByClientId[NetworkManager.ServerClientId] =
                     GetSavedPlayerName("Host");
@@ -114,7 +137,11 @@ public class RelayManager : MonoBehaviour
                 ShowMatchingPanel(roomId);
             }
         }
-        catch (System.Exception e) { SetStatus("Host Error: " + e.Message); }
+        catch (System.Exception e)
+        {
+            Debug.LogException(e);
+            SetStatus("Host Error: " + e.Message);
+        }
         finally { isStartingConnection = false; }
     }
 
@@ -159,6 +186,7 @@ public class RelayManager : MonoBehaviour
                 : "Guest";
             var payload = new RelayConnectionPayload { playerName = playerName, roomPassword = password };
             NetworkManager.Singleton.NetworkConfig.ConnectionData = Encoding.UTF8.GetBytes(JsonUtility.ToJson(payload));
+            PlayerNamesByClientId.Clear();
 
             RegisterNetworkCallbacks(false);
             pendingJoinRoomId = roomId;
@@ -168,8 +196,17 @@ public class RelayManager : MonoBehaviour
                 SetStatus("接続を開始できませんでした");
                 isStartingConnection = false;
             }
+            else
+            {
+                RegisterParticipantNamesMessageHandler();
+            }
         }
-        catch (System.Exception e) { SetStatus("Join Error: " + e.Message); isStartingConnection = false; }
+        catch (System.Exception e)
+        {
+            Debug.LogException(e);
+            SetStatus("Join Error: " + e.Message);
+            isStartingConnection = false;
+        }
     }
 
     private void ApprovalCheck(NetworkManager.ConnectionApprovalRequest req, NetworkManager.ConnectionApprovalResponse res)
@@ -214,6 +251,19 @@ public class RelayManager : MonoBehaviour
 
     private void OnClientConnected(ulong clientId)
     {
+        if (NetworkManager.Singleton != null &&
+            NetworkManager.Singleton.IsServer &&
+            clientId != NetworkManager.ServerClientId)
+        {
+            foreach (ulong registeredClientId in PlayerNamesByClientId.Keys)
+            {
+                SyncApprovedNameToPlayerObject(registeredClientId, true);
+            }
+
+            StartCoroutine(BroadcastParticipantNamesWhenReady(clientId));
+            SendParticipantNamesToClient(clientId);
+        }
+
         RefreshParticipantList();
 
         if (clientId == NetworkManager.Singleton.LocalClientId && !NetworkManager.Singleton.IsHost)
@@ -224,19 +274,54 @@ public class RelayManager : MonoBehaviour
                 roomIdText.text = pendingJoinRoomId;
             }
 
-            ShowMatchingPanel(pendingJoinRoomId);
             SetStatus("Joined");
             isStartingConnection = false;
+
+            ShowMatchingPanel(pendingJoinRoomId);
         }
+    }
+
+    private static void SendParticipantNamesToClient(ulong clientId)
+    {
+        if (NetworkManager.Singleton == null || !NetworkManager.Singleton.IsServer)
+        {
+            return;
+        }
+
+        using FastBufferWriter writer = new FastBufferWriter(1024, Allocator.Temp);
+        writer.WriteValueSafe(PlayerNamesByClientId.Count);
+        foreach (KeyValuePair<ulong, string> entry in PlayerNamesByClientId)
+        {
+            writer.WriteValueSafe(entry.Key);
+            FixedString64Bytes playerName = entry.Value;
+            writer.WriteValueSafe(playerName);
+        }
+
+        NetworkManager.Singleton.CustomMessagingManager.SendNamedMessage(
+            ParticipantNamesMessageName,
+            clientId,
+            writer);
+    }
+
+    private void OnParticipantNamesMessage(
+        ulong senderClientId,
+        FastBufferReader reader)
+    {
+        reader.ReadValueSafe(out int playerCount);
+        for (int i = 0; i < playerCount; i++)
+        {
+            reader.ReadValueSafe(out ulong clientId);
+            reader.ReadValueSafe(out FixedString64Bytes playerName);
+            ReceiveSyncedPlayerName(clientId, playerName.ToString());
+        }
+
+        RefreshParticipantList();
     }
 
     private void OnClientDisconnected(ulong clientId)
     {
-        if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsServer)
-        {
-            PlayerNamesByClientId.Remove(clientId);
-            RefreshParticipantList();
-        }
+        PlayerNamesByClientId.Remove(clientId);
+        RefreshParticipantList();
 
         if (NetworkManager.Singleton == null ||
             clientId != NetworkManager.Singleton.LocalClientId ||
@@ -255,6 +340,42 @@ public class RelayManager : MonoBehaviour
     public static bool TryGetPlayerName(ulong clientId, out string playerName)
     {
         return PlayerNamesByClientId.TryGetValue(clientId, out playerName);
+    }
+
+    public static void ReceiveSyncedPlayerName(ulong clientId, string playerName)
+    {
+        string safeName = playerName?.Trim();
+        if (!string.IsNullOrWhiteSpace(safeName))
+        {
+            PlayerNamesByClientId[clientId] = safeName;
+        }
+    }
+
+    private IEnumerator BroadcastParticipantNamesWhenReady(ulong joinedClientId)
+    {
+        const int maxWaitFrames = 120;
+        for (int frame = 0; frame < maxWaitFrames; frame++)
+        {
+            if (NetworkManager.Singleton != null &&
+                NetworkManager.Singleton.IsServer &&
+                NetworkManager.Singleton.ConnectedClients.TryGetValue(
+                    joinedClientId,
+                    out NetworkClient joinedClient) &&
+                joinedClient.PlayerObject != null &&
+                joinedClient.PlayerObject.TryGetComponent(
+                    out PlayerNetworkData broadcaster))
+            {
+                foreach (KeyValuePair<ulong, string> entry in
+                         new List<KeyValuePair<ulong, string>>(PlayerNamesByClientId))
+                {
+                    broadcaster.BroadcastPlayerNameOnServer(entry.Key, entry.Value);
+                }
+
+                yield break;
+            }
+
+            yield return null;
+        }
     }
 
     private static string GetSavedPlayerName(string fallback)
@@ -347,6 +468,14 @@ public class RelayManager : MonoBehaviour
 
     private void Update()
     {
+        if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsServer)
+        {
+            foreach (ulong clientId in PlayerNamesByClientId.Keys)
+            {
+                SyncApprovedNameToPlayerObject(clientId);
+            }
+        }
+
         RefreshParticipantList();
 
        
@@ -367,36 +496,62 @@ public class RelayManager : MonoBehaviour
             return;
         }
 
-        List<string> names = new List<string>();
-        if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsServer)
-        {
-            foreach (var playerName in PlayerNamesByClientId.Values)
-            {
-                AddParticipantName(names, playerName);
-            }
-        }
+        Dictionary<ulong, string> namesByClientId = new Dictionary<ulong, string>();
+        HashSet<ulong> participantClientIds = new HashSet<ulong>();
 
         if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening)
         {
+            participantClientIds.Add(NetworkManager.ServerClientId);
+            participantClientIds.Add(NetworkManager.Singleton.LocalClientId);
+
             foreach (var networkObject in NetworkManager.Singleton.SpawnManager.SpawnedObjectsList)
             {
                 if (networkObject != null &&
                     networkObject.TryGetComponent(out PlayerNetworkData playerData))
                 {
-                    string playerName = playerData.PlayerInfoVariable.Value.playerName.ToString();
-                    AddParticipantName(names, playerName);
+                    ulong clientId = networkObject.OwnerClientId;
+                    participantClientIds.Add(clientId);
+                    string playerName = playerData.PlayerInfoVariable.Value.playerName.ToString().Trim();
+                    if (IsFinalPlayerName(playerName))
+                    {
+                        namesByClientId[clientId] = playerName;
+                    }
                 }
             }
         }
 
-        if (names.Count == 0)
+        // ホストから同期された正式名を最優先にする。
+        foreach (KeyValuePair<ulong, string> entry in PlayerNamesByClientId)
+        {
+            participantClientIds.Add(entry.Key);
+            string playerName = entry.Value?.Trim();
+            if (!string.IsNullOrWhiteSpace(playerName))
+            {
+                namesByClientId[entry.Key] = playerName;
+            }
+        }
+
+        // 自分のPlayerNetworkDataが同期される前でも、入力済みの名前を表示する。
+        if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening)
+        {
+            string localName = GetSavedPlayerName(string.Empty);
+            if (!string.IsNullOrWhiteSpace(localName))
+            {
+                namesByClientId[NetworkManager.Singleton.LocalClientId] = localName;
+            }
+        }
+
+        if (namesByClientId.Count == 0)
         {
             string savedName = GetSavedPlayerName("Player");
             if (!string.IsNullOrWhiteSpace(savedName))
             {
-                names.Add(savedName);
+                namesByClientId[0] = savedName;
             }
         }
+
+        List<ulong> sortedClientIds = new List<ulong>(participantClientIds);
+        sortedClientIds.Sort();
 
         for (int i = 0; i < participantNameTexts.Length; i++)
         {
@@ -405,18 +560,43 @@ public class RelayManager : MonoBehaviour
                 continue;
             }
 
-            participantNameTexts[i].text = i < names.Count ? names[i] : string.Empty;
+            if (i >= sortedClientIds.Count)
+            {
+                participantNameTexts[i].text = string.Empty;
+                continue;
+            }
+
+            ulong clientId = sortedClientIds[i];
+            participantNameTexts[i].text = namesByClientId.TryGetValue(
+                clientId,
+                out string playerName)
+                ? playerName
+                : string.Empty;
         }
     }
 
-    private static void AddParticipantName(List<string> names, string playerName)
+    private static bool IsFinalPlayerName(string playerName)
     {
-        if (string.IsNullOrWhiteSpace(playerName) || names.Contains(playerName))
+        return !string.IsNullOrWhiteSpace(playerName) &&
+               playerName != "Guest" &&
+               playerName != "Player";
+    }
+
+    private static void SyncApprovedNameToPlayerObject(
+        ulong clientId,
+        bool broadcastEvenIfUnchanged = false)
+    {
+        if (NetworkManager.Singleton == null ||
+            !NetworkManager.Singleton.IsServer ||
+            !PlayerNamesByClientId.TryGetValue(clientId, out string playerName) ||
+            !NetworkManager.Singleton.ConnectedClients.TryGetValue(clientId, out NetworkClient client) ||
+            client.PlayerObject == null ||
+            !client.PlayerObject.TryGetComponent(out PlayerNetworkData playerData))
         {
             return;
         }
 
-        names.Add(playerName);
+        playerData.SetPlayerNameOnServer(playerName, broadcastEvenIfUnchanged);
     }
 
     public void OnClick_StartGame()

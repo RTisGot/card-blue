@@ -130,6 +130,19 @@ public static class CardRules
                 hasNeighbor = true;
                 PathDirection neighborPaths = GetRotatedPaths(neighbor.Value.cardType, neighbor.Value.rotated);
 
+                // Goalは接続方向を固定しない。道がGoal側を向いていない辺があっても
+                // ほかの隣接カードとの配置条件を満たしていれば配置を許可する。
+                if (IsGoalCard(neighbor.Value.cardType))
+                {
+                    PathDirection directionToGoal = GetPathDirection(direction);
+                    if ((newCardPaths & directionToGoal) != 0)
+                    {
+                        hasRoadConnection = true;
+                    }
+
+                    continue;
+                }
+
                 // Validate each directional edge.
                 if (direction == Vector2Int.up && !IsConnected(newCardPaths, PathDirection.Up, neighborPaths, PathDirection.Down)) return false;
                 if (direction == Vector2Int.down && !IsConnected(newCardPaths, PathDirection.Down, neighborPaths, PathDirection.Up)) return false;
@@ -220,5 +233,15 @@ public static class CardRules
             CardType.UDdeadendFriedegg => true,
             _ => false
         };
+    }
+
+    public static bool IsGoalCard(CardType type)
+    {
+        return type == CardType.Goal ||
+               type == CardType.GoalGold ||
+               type == CardType.GoalEmpty ||
+               type == CardType.GoalEmptyTop ||
+               type == CardType.GoalEmptyMiddle ||
+               type == CardType.GoalEmptyBottom;
     }
 }

@@ -27,7 +27,56 @@ public class PlayerNetworkData : NetworkBehaviour
     [ServerRpc]
     private void UpdatePlayerInfoServerRpc(PlayerInfo info)
     {
-        PlayerInfoVariable.Value = info;
+        SetPlayerNameOnServer(info.playerName.ToString());
+    }
+
+    public void SetPlayerNameOnServer(
+        string playerName,
+        bool broadcastEvenIfUnchanged = false)
+    {
+        if (!IsServer)
+        {
+            return;
+        }
+
+        string safeName = playerName?.Trim();
+        if (string.IsNullOrWhiteSpace(safeName))
+        {
+            safeName = $"Player {OwnerClientId}";
+        }
+
+        PlayerInfo current = PlayerInfoVariable.Value;
+        bool changed = current.clientId != OwnerClientId ||
+                       current.playerName.ToString() != safeName;
+        if (changed)
+        {
+            PlayerInfoVariable.Value = new PlayerInfo(OwnerClientId, safeName);
+        }
+
+        if (changed || broadcastEvenIfUnchanged)
+        {
+            BroadcastPlayerNameOnServer(OwnerClientId, safeName);
+        }
+    }
+
+    public void BroadcastPlayerNameOnServer(ulong clientId, string playerName)
+    {
+        if (!IsServer)
+        {
+            return;
+        }
+
+        string safeName = playerName?.Trim();
+        if (!string.IsNullOrWhiteSpace(safeName))
+        {
+            SyncPlayerNameClientRpc(clientId, safeName);
+        }
+    }
+
+    [ClientRpc]
+    private void SyncPlayerNameClientRpc(ulong clientId, string playerName)
+    {
+        RelayManager.ReceiveSyncedPlayerName(clientId, playerName);
     }
 
     public void SetToolBrokenState(CardType cardType, bool isBroken)
