@@ -68,6 +68,9 @@ public class CardView : MonoBehaviour
     [SerializeField] private Sprite railcarban;
     [SerializeField] private Sprite treasuremap;
     [SerializeField] private Sprite Fallingrocks;
+    [SerializeField] private Sprite PickaxeOrRailcarrepaire;
+    [SerializeField] private Sprite PickaxeOrLanternrepaire;
+    [SerializeField] private Sprite LanternOrRailcarrepaire;
 
     public void SetCard(CardType type, bool isFlipped)
     {
@@ -155,6 +158,9 @@ public class CardView : MonoBehaviour
             case CardType.Pickaxeban: cardArtImage.sprite = Pickaxeban; break;
             case CardType.Railcarrepaire: cardArtImage.sprite = railcarrepaire; break;
             case CardType.Railcarban: cardArtImage.sprite = railcarban; break;
+            case CardType.PickaxeOrRailcarrepaire: cardArtImage.sprite = PickaxeOrRailcarrepaire; break;
+            case CardType.PickaxeOrLanternrepaire: cardArtImage.sprite = PickaxeOrLanternrepaire; break;
+            case CardType.LanternOrRailcarrepaire: cardArtImage.sprite = LanternOrRailcarrepaire; break;
             case CardType.ActionMap: cardArtImage.sprite = treasuremap; break;
             case CardType.Treasuremap: cardArtImage.sprite = treasuremap; break;
             case CardType.ActionFallingRocks: cardArtImage.sprite = Fallingrocks; break;

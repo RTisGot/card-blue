@@ -443,7 +443,10 @@ public class DraggableCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
                cardType == CardType.Railcarban ||
                cardType == CardType.Lanternrepaire ||
                cardType == CardType.Pickaxerepaire ||
-               cardType == CardType.Railcarrepaire;
+               cardType == CardType.Railcarrepaire ||
+               cardType == CardType.PickaxeOrRailcarrepaire ||
+               cardType == CardType.PickaxeOrLanternrepaire ||
+               cardType == CardType.LanternOrRailcarrepaire;
     }
 
     private static bool IsFallingRocksCard(CardType cardType)

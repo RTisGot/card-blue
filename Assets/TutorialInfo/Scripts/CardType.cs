@@ -59,6 +59,9 @@ public enum CardType
     Pickaxeban,     // つるはし破壊
     Railcarrepaire, // トロッコ修理
     Railcarban,     // トロッコ破壊
+    PickaxeOrRailcarrepaire,    // ツルハシかトロッコ修理
+    PickaxeOrLanternrepaire,    // ツルハシかランタン修理
+    LanternOrRailcarrepaire,    // ランタンかトロッコ修理
     Treasuremap,    // 宝の地図
     Fallingrocks,   // 落石
     GoalGold,        // 金塊入りゴール（公開後）

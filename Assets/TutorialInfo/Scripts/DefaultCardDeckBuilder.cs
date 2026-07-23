@@ -62,6 +62,9 @@ public sealed class DefaultCardDeckBuilder : ICardDeckBuilder
         Add(destination, CardType.Railcarban, 3);
         Add(destination, CardType.Treasuremap, 6);
         Add(destination, CardType.Fallingrocks, 3);
+        Add(destination, CardType.PickaxeOrRailcarrepaire, 1);
+        Add(destination, CardType.PickaxeOrLanternrepaire, 1);
+        Add(destination, CardType.LanternOrRailcarrepaire, 1);
     }
 
     private static void Add(ICollection<CardType> destination, CardType type, int count)

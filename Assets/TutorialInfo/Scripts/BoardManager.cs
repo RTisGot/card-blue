@@ -1,4 +1,4 @@
-using System;
+ï»¿using System;
 using System.Collections;
 using System.Collections.Generic;
 using Unity.Collections;
@@ -8,27 +8,27 @@ using UnityEngine.UI;
 using TMPro;
 
 /// <summary>
-/// ƒQ[ƒ€‚Ì”Õ–ÊAƒvƒŒƒCƒ„[‚ÌèDAƒ^[ƒ“ŠÇ—Aƒlƒbƒgƒ[ƒN“¯Šú‚ği‚éƒƒCƒ“ƒRƒ“ƒgƒ[ƒ‰[B
-/// ƒT[ƒo[EƒNƒ‰ƒCƒAƒ“ƒgŠÔ‚Ìó‘Ô‚ÌˆêŠÑ«‚ğˆÛ‚·‚é–ğŠ„‚ğ‚¿‚Ü‚·B
+/// ã‚²ãƒ¼ãƒ ã®ç›¤é¢ã€ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®æ‰‹æœ­ã€ã‚¿ãƒ¼ãƒ³ç®¡ç†ã€ãƒãƒƒãƒˆãƒ¯ãƒ¼ã‚¯åŒæœŸã‚’å¸ã‚‹ãƒ¡ã‚¤ãƒ³ã‚³ãƒ³ãƒˆãƒ­ãƒ¼ãƒ©ãƒ¼ã€‚
+/// ã‚µãƒ¼ãƒãƒ¼ãƒ»ã‚¯ãƒ©ã‚¤ã‚¢ãƒ³ãƒˆé–“ã®çŠ¶æ…‹ã®ä¸€è²«æ€§ã‚’ç¶­æŒã™ã‚‹å½¹å‰²ã‚’æŒã¡ã¾ã™ã€‚
 /// </summary>
 public class BoardManager : NetworkBehaviour
 {
     [Header("Start Settings")]
-    [SerializeField] private Transform startCardRoot;  // StartƒJ[ƒhê—p‚Ì•\¦êŠ
+    [SerializeField] private Transform startCardRoot;  // Startã‚«ãƒ¼ãƒ‰å°‚ç”¨ã®è¡¨ç¤ºå ´æ‰€
     [SerializeField] private int startCardX = 1;
     [SerializeField] private int startCardY = 3;
 
     [Header("Goal Settings")]
-    [SerializeField] private Transform[] goalCardRoots = new Transform[3];//GoalƒJ[ƒh‚ğ”z—ñ‚É
-    [SerializeField] private Transform goalCardRoot;   // GoalƒJ[ƒhê—p‚Ì•\¦êŠ
+    [SerializeField] private Transform[] goalCardRoots = new Transform[3];//Goalã‚«ãƒ¼ãƒ‰ã‚’é…åˆ—ã«
+    [SerializeField] private Transform goalCardRoot;   // Goalã‚«ãƒ¼ãƒ‰å°‚ç”¨ã®è¡¨ç¤ºå ´æ‰€
     [SerializeField] private int goalCardX = 8;
     [SerializeField] private int goalCardY = 3;
     [SerializeField, Min(1)] private int goalVerticalSpacing = 2;
 
     [Header("Board View")]
-    [SerializeField] private Transform boardRoot;        // ”Õ–Êã‚ÌƒJ[ƒh‚ğ”z’u‚·‚éeƒRƒ“ƒeƒi
-    [SerializeField] private CardView cardPrefab;        // ¶¬‚·‚éƒJ[ƒh‚ÌƒvƒŒƒnƒu
-    [SerializeField] private float cellSize = 120f;      // ƒOƒŠƒbƒh‚ÌŠÔŠu
+    [SerializeField] private Transform boardRoot;        // ç›¤é¢ä¸Šã®ã‚«ãƒ¼ãƒ‰ã‚’é…ç½®ã™ã‚‹è¦ªã‚³ãƒ³ãƒ†ãƒŠ
+    [SerializeField] private CardView cardPrefab;        // ç”Ÿæˆã™ã‚‹ã‚«ãƒ¼ãƒ‰ã®ãƒ—ãƒ¬ãƒãƒ–
+    [SerializeField] private float cellSize = 120f;      // ã‚°ãƒªãƒƒãƒ‰ã®é–“éš”
 
     [Header("UI Settings")]
     [SerializeField] private PlayerDisplay playerEntryPrefab;
@@ -44,18 +44,23 @@ public class BoardManager : NetworkBehaviour
     [SerializeField, Min(1)] private int copiesPerCardType = 10;
 
     [Header("Turn UI")]
-    [SerializeField] private TMP_Text turnText;          // Œ»İ‚Ìƒ‰ƒEƒ“ƒhEƒ^[ƒ“‚ğ•\¦‚·‚éUI
+    [SerializeField] private TMP_Text turnText;          // ç¾åœ¨ã®ãƒ©ã‚¦ãƒ³ãƒ‰ãƒ»ã‚¿ãƒ¼ãƒ³ã‚’è¡¨ç¤ºã™ã‚‹UI
 
     [Header("Turn UI Messages")]
-    [SerializeField] private string waitingText = "‘Ò‹@’†";
-    [SerializeField] private string myTurnText = "‚ ‚È‚½‚Ì”Ô‚Å‚·";
-    [SerializeField] private string roundFormat = "ƒ‰ƒEƒ“ƒh {0}";
-    [SerializeField] private string turnFormat = "{0} ‚Ìƒ^[ƒ“";
+    [SerializeField] private string waitingText = "å¾…æ©Ÿä¸­";
+    [SerializeField] private string myTurnText = "ã‚ãªãŸã®ç•ªã§ã™";
+    [SerializeField] private string roundFormat = "ãƒ©ã‚¦ãƒ³ãƒ‰ {0}";
+    [SerializeField] private string turnFormat = "{0} ã®ã‚¿ãƒ¼ãƒ³";
 
     [Header("Layout Settings")]
-    [SerializeField] private RectTransform turnTextRect; // turnText‚ÌRectTransform‚ğƒAƒTƒCƒ“
-    [SerializeField] private Transform myTurnPosition;    // ©•ª‚Ì”Ô‚Ì‚ÌˆÊ’u
-    [SerializeField] private Transform waitingPosition;   // ‘Ò‹@’†‚ÌˆÊ’u
+    [SerializeField] private RectTransform turnTextRect; // turnTextã®RectTransformã‚’ã‚¢ã‚µã‚¤ãƒ³
+    [SerializeField] private Transform myTurnPosition;    // è‡ªåˆ†ã®ç•ªã®æ™‚ã®ä½ç½®
+    [SerializeField] private Transform waitingPosition;   // å¾…æ©Ÿä¸­ã®ä½ç½®
+
+    [Header("UI References (BoardManagerå†…ã§å®Œçµ)")]
+    [SerializeField] private GameObject choicePanel;       // ãƒ€ã‚¤ã‚¢ãƒ­ã‚°ãƒ‘ãƒãƒ«æœ¬ä½“
+    [SerializeField] private Transform buttonContainer;    // ãƒœã‚¿ãƒ³ã‚’ä¸¦ã¹ã‚‹è¦ªTransform
+    [SerializeField] private GameObject buttonPrefab;       // ãƒœã‚¿ãƒ³ã®ãƒ—ãƒ¬ãƒãƒ–
 
     [System.Serializable]
     public struct CardDistribution
@@ -64,22 +69,22 @@ public class BoardManager : NetworkBehaviour
         public int count;
     }
 
-    // --- ƒlƒbƒgƒ[ƒN“¯Šúƒf[ƒ^ ---
+    // --- ãƒãƒƒãƒˆãƒ¯ãƒ¼ã‚¯åŒæœŸãƒ‡ãƒ¼ã‚¿ ---
     private NetworkList<ulong> connectedPlayers;
-    private NetworkList<CardState> placedCards;          // ‘SƒvƒŒƒCƒ„[‚Å‹¤—L‚·‚é”Õ–Ê‚ÌƒJ[ƒhó‘Ô
-    private NetworkList<PlayerInfo> players;             // Q‰ÁƒvƒŒƒCƒ„[‚ÌƒŠƒXƒg
+    private NetworkList<CardState> placedCards;          // å…¨ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã§å…±æœ‰ã™ã‚‹ç›¤é¢ã®ã‚«ãƒ¼ãƒ‰çŠ¶æ…‹
+    private NetworkList<PlayerInfo> players;             // å‚åŠ ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®ãƒªã‚¹ãƒˆ
     private NetworkList<PlayerToolState> playerToolStates;
-    private NetworkList<DealtCard> dealtCards;           // èD‚Ì“¯Šú—pƒŠƒXƒgiŠ—LÒî•ñ‚ğŠÜ‚Şj
+    private NetworkList<DealtCard> dealtCards;           // æ‰‹æœ­ã®åŒæœŸç”¨ãƒªã‚¹ãƒˆï¼ˆæ‰€æœ‰è€…æƒ…å ±ã‚’å«ã‚€ï¼‰
 
-    // --- ƒ[ƒJƒ‹ó‘ÔŠÇ— ---
+    // --- ãƒ­ãƒ¼ã‚«ãƒ«çŠ¶æ…‹ç®¡ç† ---
     private readonly Dictionary<Vector2Int, CardView> spawnedCards = new Dictionary<Vector2Int, CardView>();
     private readonly List<PlayerDisplay> spawnedPlayerDisplays = new List<PlayerDisplay>();
     private readonly List<CardView> spawnedHandCards = new List<CardView>();
     private readonly List<CellComponent> cachedBoardCells = new List<CellComponent>();
-    private readonly List<CardType> deck = new List<CardType>(); // ƒT[ƒo[‚Ì‚İ‚ª•Û‚·‚éRDƒŠƒXƒg
+    private readonly List<CardType> deck = new List<CardType>(); // ã‚µãƒ¼ãƒãƒ¼ã®ã¿ãŒä¿æŒã™ã‚‹å±±æœ­ãƒªã‚¹ãƒˆ
     private readonly Dictionary<ulong, PlayerRole> serverPlayerRoles = new Dictionary<ulong, PlayerRole>();
 
-    // --- “¯Šú•Ï” ---
+    // --- åŒæœŸå¤‰æ•° ---
     private readonly NetworkVariable<int> currentPlayerIndex = new NetworkVariable<int>(0);
     private readonly NetworkVariable<int> roundNumber = new NetworkVariable<int>(1);
     private readonly NetworkVariable<bool> gameEnded = new NetworkVariable<bool>(false);
@@ -101,16 +106,23 @@ public class BoardManager : NetworkBehaviour
     private readonly List<GameObject> actionTargetPanelEntries = new List<GameObject>();
     private GameObject localRoleImageObject;
     private bool rolesAssigned;
+    private GameObject currentSelectedCardObject;
+    private CardType currentSelectedActionCard;
+    private ulong currentSelectedTargetClientId;
     public static BoardManager Instance;
     public bool selectingFallingRocks = false;
 
 
-
+    private void Start()
+    {
+        // æœ€åˆã¯UIã‚’éè¡¨ç¤ºã«ã—ã¦ãŠã
+        if (choicePanel != null) choicePanel.SetActive(false);
+    }
 
     private void Awake()
     {
         Instance = this;
-        // NetworkList‚Ì‰Šú‰»
+        // NetworkListã®åˆæœŸåŒ–
         connectedPlayers = new NetworkList<ulong>();
         placedCards = new NetworkList<CardState>();
         players = new NetworkList<PlayerInfo>();
@@ -123,8 +135,8 @@ public class BoardManager : NetworkBehaviour
     }
 
     /// <summary>
-    /// ƒlƒbƒgƒ[ƒNÚ‘±‚ªŠm—§‚³‚ê‚½Œã‚ÉÀs‚³‚ê‚é‰Šú‰»ˆ—B
-    /// ŠeƒNƒ‰ƒCƒAƒ“ƒg‚Å‚Ìó‘Ô“¯Šú‚âƒCƒxƒ“ƒgw“ÇB
+    /// ãƒãƒƒãƒˆãƒ¯ãƒ¼ã‚¯æ¥ç¶šãŒç¢ºç«‹ã•ã‚ŒãŸå¾Œã«å®Ÿè¡Œã•ã‚Œã‚‹åˆæœŸåŒ–å‡¦ç†ã€‚
+    /// å„ã‚¯ãƒ©ã‚¤ã‚¢ãƒ³ãƒˆã§ã®çŠ¶æ…‹åŒæœŸã‚„ã‚¤ãƒ™ãƒ³ãƒˆè³¼èª­ã€‚
     /// </summary>
     public override void OnNetworkSpawn()
     {
@@ -136,7 +148,7 @@ public class BoardManager : NetworkBehaviour
             }
         }
 
-        // ó‘Ô•ÏX‚ÌƒR[ƒ‹ƒoƒbƒN“o˜^
+        // çŠ¶æ…‹å¤‰æ›´æ™‚ã®ã‚³ãƒ¼ãƒ«ãƒãƒƒã‚¯ç™»éŒ²
         placedCards.OnListChanged += OnPlacedCardsChanged;
         players.OnListChanged += OnPlayersChanged;
         playerToolStates.OnListChanged += OnPlayerToolStatesChanged;
@@ -145,7 +157,7 @@ public class BoardManager : NetworkBehaviour
         roundNumber.OnValueChanged += OnTurnChanged;
         gameEnded.OnValueChanged += OnGameEndedChanged;
 
-        // ƒT[ƒo[‚Ì‚İF”Õ–Ê‚Ì‰ŠúƒJ[ƒh‚ÆRD‚Ì¶¬
+        // ã‚µãƒ¼ãƒãƒ¼ã®ã¿ï¼šç›¤é¢ã®åˆæœŸã‚«ãƒ¼ãƒ‰ã¨å±±æœ­ã®ç”Ÿæˆ
         if (IsServer && placedCards.Count == 0)
         {
             placedCards.Add(new CardState(startCardX, startCardY, CardType.Start, false, NetworkManager.ServerClientId, false, false, false));
@@ -167,7 +179,7 @@ public class BoardManager : NetworkBehaviour
             BuildAndShuffleDeck();
         }
 
-        // Ú‘±Ï‚İƒvƒŒƒCƒ„[‚Ì“o˜^
+        // æ¥ç¶šæ¸ˆã¿ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®ç™»éŒ²
         if (IsServer)
         {
             foreach (ulong clientId in NetworkManager.Singleton.ConnectedClientsIds)
@@ -179,7 +191,7 @@ public class BoardManager : NetworkBehaviour
 
         }
 
-        // ƒrƒ…[‚Ì‰Šú‰»
+        // ãƒ“ãƒ¥ãƒ¼ã®åˆæœŸåŒ–
         StartCoroutine(RegisterLocalPlayerWhenReady());
         RebuildBoardView();
         StartCoroutine(RebuildBoardViewAfterCellsReady());
@@ -189,14 +201,14 @@ public class BoardManager : NetworkBehaviour
         RefreshPlacementHighlights();
     }
 
-    // --- ƒvƒŒƒCƒ„[ŠÇ—ƒƒWƒbƒN ---
+    // --- ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ç®¡ç†ãƒ­ã‚¸ãƒƒã‚¯ ---
 
     /// <summary>
-    /// ƒvƒŒƒCƒ„[–¼‚ª‰ğŒˆ‚³‚ê‚é‚Ü‚Å‘Ò‹@‚µAƒT[ƒo[‚É“o˜^‚ğƒŠƒNƒGƒXƒg‚µ‚Ü‚·B
+    /// ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼åãŒè§£æ±ºã•ã‚Œã‚‹ã¾ã§å¾…æ©Ÿã—ã€ã‚µãƒ¼ãƒãƒ¼ã«ç™»éŒ²ã‚’ãƒªã‚¯ã‚¨ã‚¹ãƒˆã—ã¾ã™ã€‚
     /// </summary>
     private IEnumerator Register;
 
-    // ©•ª‚Ì–¼‘O‚ğƒT[ƒo[‚Ö‚Ì“o˜^‚ªŠ®—¹‚·‚é‚Ü‚Å‘Ò‹@‚·‚é
+    // è‡ªåˆ†ã®åå‰ã‚’ã‚µãƒ¼ãƒãƒ¼ã¸ã®ç™»éŒ²ãŒå®Œäº†ã™ã‚‹ã¾ã§å¾…æ©Ÿã™ã‚‹
     private IEnumerator RegisterLocalPlayerWhenReady()
     {
         while (IsSpawned && NetworkManager.Singleton != null)
@@ -226,15 +238,15 @@ public class BoardManager : NetworkBehaviour
         }
     }
 
-    //ƒ[ƒJƒ‹ƒvƒŒƒCƒ„[‚Ì–¼‘O‚ğæ“¾‚·‚éˆ—
+    //ãƒ­ãƒ¼ã‚«ãƒ«ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®åå‰ã‚’å–å¾—ã™ã‚‹å‡¦ç†
     private string GetLocalPlayerName(ulong localClientId)
     {
-        if (NetworkManager.Singleton.LocalClient != null &&                  // ƒ[ƒJƒ‹ƒNƒ‰ƒCƒAƒ“ƒgî•ñ‚ª‘¶İ‚·‚éê‡
-            NetworkManager.Singleton.LocalClient.PlayerObject != null &&     // ƒvƒŒƒCƒ„[ƒIƒuƒWƒFƒNƒg‚ª‘¶İ‚·‚éê‡
+        if (NetworkManager.Singleton.LocalClient != null &&                  // ãƒ­ãƒ¼ã‚«ãƒ«ã‚¯ãƒ©ã‚¤ã‚¢ãƒ³ãƒˆæƒ…å ±ãŒå­˜åœ¨ã™ã‚‹å ´åˆ
+            NetworkManager.Singleton.LocalClient.PlayerObject != null &&     // ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆãŒå­˜åœ¨ã™ã‚‹å ´åˆ
             NetworkManager.Singleton.LocalClient.PlayerObject.TryGetComponent(
-                out PlayerNetworkData playerData))                          // PlayerNetworkDataƒRƒ“ƒ|[ƒlƒ“ƒg‚ª‘¶İ‚·‚éê‡
+                out PlayerNetworkData playerData))                          // PlayerNetworkDataã‚³ãƒ³ãƒãƒ¼ãƒãƒ³ãƒˆãŒå­˜åœ¨ã™ã‚‹å ´åˆ
         {
-            string networkName = playerData.PlayerInfoVariable.Value.playerName.ToString().Trim();//ƒlƒbƒgƒ[ƒNŒo—R‚ÅƒvƒŒƒCƒ„[‚Ì–¼‘O‚ğæ“¾•ÏŒ`
+            string networkName = playerData.PlayerInfoVariable.Value.playerName.ToString().Trim();//ãƒãƒƒãƒˆãƒ¯ãƒ¼ã‚¯çµŒç”±ã§ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®åå‰ã‚’å–å¾—å¤‰å½¢
             if (!string.IsNullOrWhiteSpace(networkName) &&
                 networkName != "Guest" &&
                 networkName != "Player")
@@ -393,7 +405,7 @@ public class BoardManager : NetworkBehaviour
 
             if (connectedCount >= 2 && players.Count == connectedCount)
             {
-                // ‘SƒNƒ‰ƒCƒAƒ“ƒg‘¤‚ÅƒV[ƒ“ƒIƒuƒWƒFƒNƒg‚ªSpawn‚³‚ê‚éŠÔ‚ğ1ƒtƒŒ[ƒ€Šm•Û‚·‚éB
+                // å…¨ã‚¯ãƒ©ã‚¤ã‚¢ãƒ³ãƒˆå´ã§ã‚·ãƒ¼ãƒ³ã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆãŒSpawnã•ã‚Œã‚‹æ™‚é–“ã‚’1ãƒ•ãƒ¬ãƒ¼ãƒ ç¢ºä¿ã™ã‚‹ã€‚
                 yield return null;
                 AssignRolesOnServer();
                 yield break;
@@ -556,7 +568,97 @@ public class BoardManager : NetworkBehaviour
         RefreshActionTargetSelectionPanel();
     }
 
-    //èD‚Ìó‘Ô‚ğXV‚·‚é
+    /// æ—¢å­˜ã®ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼é¸æŠUIã§ã€Œãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼åã€ãŒã‚¯ãƒªãƒƒã‚¯ã•ã‚ŒãŸæ™‚ã®å‡¦ç†
+    public void OnSelectPlayerTarget(ulong targetClientId, CardType selectedCardType)
+    {
+        currentSelectedTargetClientId = targetClientId;
+        currentSelectedActionCard = selectedCardType;
+
+        EnsurePlayerToolState(targetClientId);
+        TryGetPlayerToolBrokenState(targetClientId, out bool isLanternBroken, out bool isPickaxeBroken, out bool isRailcarBroken);
+
+        // ----------------------------------------------------
+        // 2ç¨®å¯¾å¿œä¿®å¾©ã‚«ãƒ¼ãƒ‰ã®åˆ¤å®š
+        // ----------------------------------------------------
+        switch (selectedCardType)
+        {
+            case CardType.PickaxeOrLanternrepaire:
+                if (isPickaxeBroken && isLanternBroken)
+                {
+                    // ä¸¡æ–¹å£Šã‚Œã¦ã„ã‚‹ â” é“å…·é¸æŠãƒœã‚¿ãƒ³ã‚’è¡¨ç¤ºã™ã‚‹ï¼
+                    ShowToolSelectionButtons(targetClientId, CardType.Pickaxerepaire, CardType.Lanternrepaire);
+                    return; // ã“ã“ã§ä¸€æ—¦æ­¢ã‚ã¦ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®é“å…·é¸æŠã‚’å¾…ã¤
+                }
+                else if (isPickaxeBroken)
+                {
+                    SetPlayerToolBrokenState(targetClientId, CardType.Pickaxerepaire, false);
+                }
+                else if (isLanternBroken)
+                {
+                    SetPlayerToolBrokenState(targetClientId, CardType.Lanternrepaire, false);
+                }
+                break;
+
+            case CardType.PickaxeOrRailcarrepaire:
+                if (isPickaxeBroken && isRailcarBroken)
+                {
+                    ShowToolSelectionButtons(targetClientId, CardType.Pickaxerepaire, CardType.Railcarrepaire);
+                    return;
+                }
+                else if (isPickaxeBroken)
+                {
+                    SetPlayerToolBrokenState(targetClientId, CardType.Pickaxerepaire, false);
+                }
+                else if (isRailcarBroken)
+                {
+                    SetPlayerToolBrokenState(targetClientId, CardType.Railcarrepaire, false);
+                }
+                break;
+
+            case CardType.LanternOrRailcarrepaire:
+                if (isLanternBroken && isRailcarBroken)
+                {
+                    ShowToolSelectionButtons(targetClientId, CardType.Lanternrepaire, CardType.Railcarrepaire);
+                    return;
+                }
+                else if (isLanternBroken)
+                {
+                    SetPlayerToolBrokenState(targetClientId, CardType.Lanternrepaire, false);
+                }
+                else if (isRailcarBroken)
+                {
+                    SetPlayerToolBrokenState(targetClientId, CardType.Railcarrepaire, false);
+                }
+                break;
+
+            // 1ç¨®ã‚«ãƒ¼ãƒ‰ã‚„å¦¨å®³ã‚«ãƒ¼ãƒ‰ãªã©ã¯æ—¢å­˜ã®é€šã‚Šå‡¦ç†
+            default:
+                SetPlayerToolBrokenState(targetClientId, selectedCardType, selectedCardType.ToString().EndsWith("ban"));
+                break;
+        }
+
+        // é¸æŠå®Œäº†ã—ãŸã‚‰ã‚¿ãƒ¼ã‚²ãƒƒãƒˆãƒ‘ãƒãƒ«ã‚’é–‰ã˜ã‚‹
+        CloseActionTargetSelectionPanel();
+    }
+
+    /// <summary>
+    /// ä¸¡æ–¹å£Šã‚Œã¦ã„ã‚‹æ™‚ã«ã€Œé“å…·é¸æŠãƒœã‚¿ãƒ³ï¼ˆé¸æŠè‚¢ï¼‰ã€ã‚’è¡¨ç¤ºãƒ»åˆ‡æ›¿ã™ã‚‹å‡¦ç†
+    /// </summary>
+    private void ShowToolSelectionButtons(ulong targetClientId, CardType optionA, CardType optionB)
+    {
+
+    }
+
+    /// <summary>
+    /// ã‚¿ãƒ¼ã‚²ãƒƒãƒˆé¸æŠãƒ‘ãƒãƒ«ã‚’é–‰ã˜ã‚‹é–¢æ•°
+    /// </summary>
+    private void CloseActionTargetSelectionPanel()
+    {
+        // ãƒ‘ãƒãƒ«ã‚’éè¡¨ç¤ºã«ã—ã€RefreshPlayerList() ãªã©ã‚’å‘¼ã‚“ã§è¡¨ç¤ºã‚’æœ€æ–°åŒ–ã™ã‚‹
+        RefreshPlayerList();
+    }
+
+    //æ‰‹æœ­ã®çŠ¶æ…‹ã‚’æ›´æ–°ã™ã‚‹
     private void OnDealtCardsChanged(NetworkListEvent<DealtCard> changeEvent)
     {
         RefreshLocalHand();
@@ -570,17 +672,17 @@ public class BoardManager : NetworkBehaviour
             return;
         }
 
-        // ‘S‚Ä‚Ì•`‰ææ‚ğƒŠƒZƒbƒg
-        ClearContainer(handRoot); // EnsureHandRoot‚Å‰Šú‰»‚³‚ê‚é‘z’è
+        // å…¨ã¦ã®æç”»å…ˆã‚’ãƒªã‚»ãƒƒãƒˆ
+        ClearContainer(handRoot); // EnsureHandRootã§åˆæœŸåŒ–ã•ã‚Œã‚‹æƒ³å®š
 
-        // èDUIƒŠƒXƒg‚ğƒNƒŠƒA
+        // æ‰‹æœ­UIãƒªã‚¹ãƒˆã‚’ã‚¯ãƒªã‚¢
         foreach (CardView card in spawnedHandCards)
         {
             if (card != null) Destroy(card.gameObject);
         }
         spawnedHandCards.Clear();
 
-        //•K—v‚Èeƒ‹[ƒg‚ÌŠm•Û
+        //å¿…è¦ãªè¦ªãƒ«ãƒ¼ãƒˆã®ç¢ºä¿
         EnsureHandRoot();
         if (handRoot == null) return;
 
@@ -592,7 +694,7 @@ public class BoardManager : NetworkBehaviour
 
         for (int i = 0; i < dealtCards.Count; i++)
         {
-            // ©•ªˆÈŠO‚ÌƒJ[ƒh‚ÆA”Õ–Ê—p‚ÌStartƒJ[ƒh‚ÍƒXƒLƒbƒv
+            // è‡ªåˆ†ä»¥å¤–ã®ã‚«ãƒ¼ãƒ‰ã¨ã€ç›¤é¢ç”¨ã®Startã‚«ãƒ¼ãƒ‰ã¯ã‚¹ã‚­ãƒƒãƒ—
             if (dealtCards[i].ownerClientId != localClientId || dealtCards[i].cardType == CardType.Start)
             {
                 continue;
@@ -600,11 +702,11 @@ public class BoardManager : NetworkBehaviour
 
             Transform parentContainer = handRoot;
 
-            // w’è‚µ‚½ƒRƒ“ƒeƒi‚ğe‚É‚µ‚Ä¶¬
+            // æŒ‡å®šã—ãŸã‚³ãƒ³ãƒ†ãƒŠã‚’è¦ªã«ã—ã¦ç”Ÿæˆ
             CardView card = Instantiate(cardPrefab, parentContainer);
             card.gameObject.SetActive(true);
 
-            // UIİ’è
+            // UIè¨­å®š
             RectTransform cardRect = card.GetComponent<RectTransform>();
             if (cardRect != null)
             {
@@ -619,10 +721,10 @@ public class BoardManager : NetworkBehaviour
             layoutElement.flexibleWidth = 0f;
             layoutElement.flexibleHeight = 0f;
 
-            // ƒJ[ƒhİ’è
+            // ã‚«ãƒ¼ãƒ‰è¨­å®š
             card.SetCard(dealtCards[i].cardType, true);
 
-            // ’Êí‚ÌèDƒGƒŠƒA‚É‚ ‚éƒJ[ƒh‚¾‚¯‚ğƒCƒ“ƒ^ƒ‰ƒNƒeƒBƒu‚É‚·‚é
+            // é€šå¸¸ã®æ‰‹æœ­ã‚¨ãƒªã‚¢ã«ã‚ã‚‹ã‚«ãƒ¼ãƒ‰ã ã‘ã‚’ã‚¤ãƒ³ã‚¿ãƒ©ã‚¯ãƒ†ã‚£ãƒ–ã«ã™ã‚‹
             bool isInteractable = (parentContainer == handRoot) && isLocalTurn;
             SetCardInteractivity(card, isInteractable);
 
@@ -633,7 +735,7 @@ public class BoardManager : NetworkBehaviour
         Debug.Log($"Local hand refreshed: client {localClientId}, cards {visibleCardCount}");
     }
 
-    // ƒRƒ“ƒeƒi‚Ì’†g‚ğ‚·‚×‚Äíœ
+    // ã‚³ãƒ³ãƒ†ãƒŠã®ä¸­èº«ã‚’ã™ã¹ã¦å‰Šé™¤
     private void ClearContainer(Transform container)
     {
         if (container == null) return;
@@ -666,7 +768,7 @@ public class BoardManager : NetworkBehaviour
             return false;
         }
 
-        // ƒNƒ‰ƒCƒAƒ“ƒg‚ªŸè‚É“®‚©‚·‚Ì‚Å‚Í‚È‚­AƒT[ƒo[‚Éˆ—‚ğˆË—Š‚·‚é
+        // ã‚¯ãƒ©ã‚¤ã‚¢ãƒ³ãƒˆãŒå‹æ‰‹ã«å‹•ã‹ã™ã®ã§ã¯ãªãã€ã‚µãƒ¼ãƒãƒ¼ã«å‡¦ç†ã‚’ä¾é ¼ã™ã‚‹
         RequestPlaceCardServerRpc(x, y, cardtype, rotated);
         return true;
     }
@@ -698,10 +800,10 @@ public class BoardManager : NetworkBehaviour
         return !isLanternBroken && !isPickaxeBroken && !isRailcarBroken;
     }
 
-    //‚¨‚¯‚éêŠ‚ÌƒnƒCƒ‰ƒCƒg•\¦
+    //ãŠã‘ã‚‹å ´æ‰€ã®ãƒã‚¤ãƒ©ã‚¤ãƒˆè¡¨ç¤º
     public void ShowPlacementHighlights(CardType cardType, bool rotated)
     {
-        Debug.Log($"[Debug] ƒnƒCƒ‰ƒCƒgˆ—ŠJn: {cardType}");
+        Debug.Log($"[Debug] ãƒã‚¤ãƒ©ã‚¤ãƒˆå‡¦ç†é–‹å§‹: {cardType}");
         placementHighlightsVisible = true;
         highlightedCardType = cardType;
         highlightedCardRotated = rotated;
@@ -905,7 +1007,7 @@ public class BoardManager : NetworkBehaviour
     public void StartFallingRocksSelection()
     {
         isSelectingFallingRocks = true;
-        Debug.Log("—ÎƒJ[ƒh‘I‘ğƒ‚[ƒh");
+        Debug.Log("è½çŸ³ã‚«ãƒ¼ãƒ‰é¸æŠãƒ¢ãƒ¼ãƒ‰");
     }
 
     public bool IsValidLocalActionTarget(CardType cardType, ulong targetClientId)
@@ -993,8 +1095,8 @@ public class BoardManager : NetworkBehaviour
     }
 
     /// <summary>
-    /// –WŠQƒJ[ƒh‚ğ¶ƒNƒŠƒbƒN‚µ‚½‚¾‚¯A©•ªˆÈŠO‚Ì‘ÎÛŒó•â‚ğê—pƒpƒlƒ‹‚É•\¦‚·‚éB
-    /// ƒV[ƒ“‚Ö‚Ìèì‹Æ‚Å‚ÌUI’Ç‰Á‚ğ•s—v‚É‚·‚é‚½‚ßAƒpƒlƒ‹‚ÍÀs‚É¶¬‚·‚éB
+    /// å¦¨å®³ã‚«ãƒ¼ãƒ‰ã‚’å·¦ã‚¯ãƒªãƒƒã‚¯ã—ãŸæ™‚ã ã‘ã€è‡ªåˆ†ä»¥å¤–ã®å¯¾è±¡å€™è£œã‚’å°‚ç”¨ãƒ‘ãƒãƒ«ã«è¡¨ç¤ºã™ã‚‹ã€‚
+    /// ã‚·ãƒ¼ãƒ³ã¸ã®æ‰‹ä½œæ¥­ã§ã®UIè¿½åŠ ã‚’ä¸è¦ã«ã™ã‚‹ãŸã‚ã€ãƒ‘ãƒãƒ«ã¯å®Ÿè¡Œæ™‚ã«ç”Ÿæˆã™ã‚‹ã€‚
     /// </summary>
     private void RefreshActionTargetSelectionPanel()
     {
@@ -1027,7 +1129,7 @@ public class BoardManager : NetworkBehaviour
 
         GameObject title = CreateActionTargetText(
             actionTargetPanel.transform,
-            "‘ÎÛƒvƒŒƒCƒ„[‚ğ‘I‘ğ",
+            "å¯¾è±¡ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã‚’é¸æŠ",
             28f,
             54f);
         actionTargetPanelEntries.Add(title);
@@ -1087,7 +1189,7 @@ public class BoardManager : NetworkBehaviour
         cancelLayout.preferredWidth = 380f;
         cancelLayout.preferredHeight = 48f;
         cancelButton.GetComponent<Button>().onClick.AddListener(() => ClearActionTargetSelection());
-        CreateActionTargetText(cancelButton.transform, "ƒLƒƒƒ“ƒZƒ‹", 21f, 48f, true);
+        CreateActionTargetText(cancelButton.transform, "ã‚­ãƒ£ãƒ³ã‚»ãƒ«", 21f, 48f, true);
         actionTargetPanelEntries.Add(cancelButton);
     }
 
@@ -1188,7 +1290,7 @@ public class BoardManager : NetworkBehaviour
         return true;
     }
 
-    //ƒJ[ƒh‚ğ”Õ–Ê‚É’u‚­ˆ—
+    //ã‚«ãƒ¼ãƒ‰ã‚’ç›¤é¢ã«ç½®ãå‡¦ç†
     [ServerRpc(RequireOwnership = false)]
     private void RequestPlaceCardServerRpc(int x, int y, CardType cardType, bool rotated, ServerRpcParams rpcParams = default)
     {
@@ -1196,8 +1298,8 @@ public class BoardManager : NetworkBehaviour
         ulong senderClientId = rpcParams.Receive.SenderClientId;
         if (!CanAct(senderClientId) || !IsTerrainCard(cardType) || !HasCardInHand(senderClientId, cardType))
         {
-            // ‚Ç‚ÌğŒ‚Å¸”s‚µ‚½‚©“Á’è‚·‚éƒƒO‚É‘‚«Š·‚¦‚é
-            Debug.Log($"”z’u¸”s: CanAct={CanAct(senderClientId)}, IsTerrain={IsTerrainCard(cardType)}, HasCard={HasCardInHand(senderClientId, cardType)}");
+            // ã©ã®æ¡ä»¶ã§å¤±æ•—ã—ãŸã‹ç‰¹å®šã™ã‚‹ãƒ­ã‚°ã«æ›¸ãæ›ãˆã‚‹
+            Debug.Log($"é…ç½®å¤±æ•—: CanAct={CanAct(senderClientId)}, IsTerrain={IsTerrainCard(cardType)}, HasCard={HasCardInHand(senderClientId, cardType)}");
             RejectPlaceCardClientRpc(CreateTargetClientRpcParams(senderClientId));
             return;
         }
@@ -1209,13 +1311,13 @@ public class BoardManager : NetworkBehaviour
 
         if (!CanPlaceCard(senderClientId, position, cardType, rotated))
         {
-            Debug.Log("”z’u¸”s: ”z’uƒ‹[ƒ‹‚ğ–‚½‚µ‚Ä‚¢‚Ü‚¹‚ñ");
+            Debug.Log("é…ç½®å¤±æ•—: é…ç½®ãƒ«ãƒ¼ãƒ«ã‚’æº€ãŸã—ã¦ã„ã¾ã›ã‚“");
             RejectPlaceCardClientRpc(CreateTargetClientRpcParams(senderClientId));
             return;
         }
 
-        RemoveCardFromHand(senderClientId, cardType); //èD‚©‚çƒJ[ƒh‚ğíœ
-        //”Õ–Ê‚ÉƒJ[ƒh‚ğ’Ç‰Á
+        RemoveCardFromHand(senderClientId, cardType); //æ‰‹æœ­ã‹ã‚‰ã‚«ãƒ¼ãƒ‰ã‚’å‰Šé™¤
+        //ç›¤é¢ã«ã‚«ãƒ¼ãƒ‰ã‚’è¿½åŠ 
         placedCards.Add(new CardState(
             x,
             y,
@@ -1252,30 +1354,30 @@ public class BoardManager : NetworkBehaviour
     }
     public void ExecutePlacementOnServer(int x, int y, CardType cardType, bool rotated)
     {
-        // ”z’uêŠ‚ÌƒZƒ‹‚ğæ“¾
-        CellComponent cell = GetCellAt(x, y); // À•W‚©‚çCell‚ğæ“¾‚·‚éƒƒ\ƒbƒh(Šù‘¶‚Ì‚à‚Ì)
+        // é…ç½®å ´æ‰€ã®ã‚»ãƒ«ã‚’å–å¾—
+        CellComponent cell = GetCellAt(x, y); // åº§æ¨™ã‹ã‚‰Cellã‚’å–å¾—ã™ã‚‹ãƒ¡ã‚½ãƒƒãƒ‰(æ—¢å­˜ã®ã‚‚ã®)
 
         if (cell == null || !IsCellEmpty(x, y)) return;
 
-        // ƒJ[ƒh‚ÌƒvƒŒƒnƒu‚©‚çƒCƒ“ƒXƒ^ƒ“ƒX‚ğ¶¬‚µ‚ÄƒXƒ|[ƒ“‚·‚é
+        // ã‚«ãƒ¼ãƒ‰ã®ãƒ—ãƒ¬ãƒãƒ–ã‹ã‚‰ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹ã‚’ç”Ÿæˆã—ã¦ã‚¹ãƒãƒ¼ãƒ³ã™ã‚‹
         GameObject cardInstance = Instantiate(cardPrefab).gameObject;
         NetworkObject netObj = cardInstance.GetComponent<NetworkObject>();
 
-        // ƒT[ƒo[ã‚ÅƒXƒ|[ƒ“‚³‚¹‚é
+        // ã‚µãƒ¼ãƒãƒ¼ä¸Šã§ã‚¹ãƒãƒ¼ãƒ³ã•ã›ã‚‹
         netObj.Spawn();
 
-        //eqŠÖŒW‚ğİ’è
+        //è¦ªå­é–¢ä¿‚ã‚’è¨­å®š
         netObj.TrySetParent(cell.transform);
 
-        // ƒNƒ‰ƒCƒAƒ“ƒg‘¤‚ÌŒ©‚½–Ú‚ğ®‚¦‚é
-        // ”z’uŠ®—¹‚ğ‘Sˆõ‚É’Ê’m‚·‚éClientRpc
+        // ã‚¯ãƒ©ã‚¤ã‚¢ãƒ³ãƒˆå´ã®è¦‹ãŸç›®ã‚’æ•´ãˆã‚‹
+        // é…ç½®å®Œäº†ã‚’å…¨å“¡ã«é€šçŸ¥ã™ã‚‹ClientRpc
         UpdateCardVisualClientRpc(netObj.NetworkObjectId, x, y);
     }
 
     [ClientRpc]
     private void UpdateCardVisualClientRpc(ulong networkObjectId, int x, int y)
     {
-        // •K—v‚É‰‚¶‚ÄAƒXƒ|[ƒ“‚µ‚½ƒJ[ƒh‚Ìƒ[ƒJƒ‹ˆÊ’u‚ğƒŠƒZƒbƒg
+        // å¿…è¦ã«å¿œã˜ã¦ã€ã‚¹ãƒãƒ¼ãƒ³ã—ãŸã‚«ãƒ¼ãƒ‰ã®ãƒ­ãƒ¼ã‚«ãƒ«ä½ç½®ã‚’ãƒªã‚»ãƒƒãƒˆ
         if (NetworkManager.Singleton.SpawnManager.SpawnedObjects.TryGetValue(networkObjectId, out NetworkObject netObj))
         {
             netObj.transform.localPosition = Vector3.zero;
@@ -1288,7 +1390,7 @@ public class BoardManager : NetworkBehaviour
             }
         }
     }
-    //ƒAƒNƒVƒ‡ƒ“ƒJ[ƒh‚ğƒvƒŒƒC‚·‚éˆ—
+    //ã‚¢ã‚¯ã‚·ãƒ§ãƒ³ã‚«ãƒ¼ãƒ‰ã‚’ãƒ—ãƒ¬ã‚¤ã™ã‚‹å‡¦ç†
     [ServerRpc(RequireOwnership = false)]
     private void RequestPlayActionCardServerRpc(CardType cardType, ulong targetClientId, int targetX, int targetY, ServerRpcParams rpcParams = default)
     {
@@ -1306,10 +1408,10 @@ public class BoardManager : NetworkBehaviour
         }
         Vector2Int targetPosition = new Vector2Int(targetX, targetY);
 
-        RemoveCardFromHand(senderClientId, cardType);//èD‚©‚çƒJ[ƒh‚ğíœ
-        ApplyActionEffect(senderClientId, cardType, targetClientId, targetPosition); //ƒJ[ƒh‚ÌŒø‰Ê‚ğ“K‰
-        DrawCard(senderClientId);                    //ƒJ[ƒh‚ğˆø‚­
-        AdvanceTurn();                               //ƒ^[ƒ“‚ği‚ß‚é
+        RemoveCardFromHand(senderClientId, cardType);//æ‰‹æœ­ã‹ã‚‰ã‚«ãƒ¼ãƒ‰ã‚’å‰Šé™¤
+        ApplyActionEffect(senderClientId, cardType, targetClientId, targetPosition); //ã‚«ãƒ¼ãƒ‰ã®åŠ¹æœã‚’é©å¿œ
+        DrawCard(senderClientId);                    //ã‚«ãƒ¼ãƒ‰ã‚’å¼•ã
+        AdvanceTurn();                               //ã‚¿ãƒ¼ãƒ³ã‚’é€²ã‚ã‚‹
     }
 
     [ServerRpc(RequireOwnership = false)]
@@ -1407,7 +1509,7 @@ public class BoardManager : NetworkBehaviour
         AdvanceTurn();
     }
 
-    //ƒAƒNƒVƒ‡ƒ“ƒJ[ƒh‚ÌŒø‰Ê‚ğ“K‰‚·‚éˆ—
+    //ã‚¢ã‚¯ã‚·ãƒ§ãƒ³ã‚«ãƒ¼ãƒ‰ã®åŠ¹æœã‚’é©å¿œã™ã‚‹å‡¦ç†
     private void ApplyActionEffect(ulong senderId,
     CardType cardType,
     ulong targetClientId,
@@ -1420,31 +1522,75 @@ public class BoardManager : NetworkBehaviour
             case CardType.ActionFallingRocks:
             case CardType.Fallingrocks:
                 RemovePlacedCard(targetPosition);
-                Debug.Log($"—”Õ‘ÎÛ: {targetName}");
+                Debug.Log($"è½ç›¤å¯¾è±¡: {targetName}");
                 break;
             case CardType.ActionMap:
             case CardType.Treasuremap:
-                // ’n}‚Ìˆ—
-                Debug.Log($"•ó‚Ì’n}‘ÎÛ: {targetName}");
+                // åœ°å›³ã®å‡¦ç†
+                Debug.Log($"å®ã®åœ°å›³å¯¾è±¡: {targetName}");
                 break;
             case CardType.Lanternban:
             case CardType.Pickaxeban:
             case CardType.Railcarban:
                 SetPlayerToolBrokenState(targetClientId, cardType, true);
-                Debug.Log($"–WŠQƒJ[ƒh{targetName} ‚ğ‘ÎÛ‚É‚µ‚Ü‚µ‚½");
+                Debug.Log($"å¦¨å®³ã‚«ãƒ¼ãƒ‰{targetName} ã‚’å¯¾è±¡ã«ã—ã¾ã—ãŸ");
                 break;
             case CardType.Lanternrepaire:
             case CardType.Pickaxerepaire:
             case CardType.Railcarrepaire:
+
+            // 2ç¨®å¯¾å¿œ ä¿®ç†ã‚«ãƒ¼ãƒ‰
+            case CardType.PickaxeOrLanternrepaire:
+                EnsurePlayerToolState(targetClientId);
+                PlayerToolState statePL = GetPlayerToolState(targetClientId);
+
+                if (statePL.isPickaxeBroken)
+                {
+                    SetPlayerToolBrokenState(targetClientId, CardType.Pickaxerepaire, false);
+                }
+                else if (statePL.isLanternBroken)
+                {
+                    SetPlayerToolBrokenState(targetClientId, CardType.Lanternrepaire, false);
+                }
+                break;
+
+            case CardType.PickaxeOrRailcarrepaire:
+                EnsurePlayerToolState(targetClientId);
+                PlayerToolState statePR = GetPlayerToolState(targetClientId);
+
+                if (statePR.isPickaxeBroken)
+                {
+                    SetPlayerToolBrokenState(targetClientId, CardType.Pickaxerepaire, false);
+                }
+                else if (statePR.isRailcarBroken)
+                {
+                    SetPlayerToolBrokenState(targetClientId, CardType.Railcarrepaire, false);
+                }
+                break;
+
+            case CardType.LanternOrRailcarrepaire:
+                EnsurePlayerToolState(targetClientId);
+                PlayerToolState stateLR = GetPlayerToolState(targetClientId);
+
+                if (stateLR.isLanternBroken)
+                {
+                    SetPlayerToolBrokenState(targetClientId, CardType.Lanternrepaire, false);
+                }
+                else if (stateLR.isRailcarBroken)
+                {
+                    SetPlayerToolBrokenState(targetClientId, CardType.Railcarrepaire, false);
+                }
+                break;
+
                 SetPlayerToolBrokenState(targetClientId, cardType, false);
-                Debug.Log($"C—ƒJ[ƒh{targetName} ‚ğ‘ÎÛ‚É‚µ‚Ü‚µ‚½");
+                Debug.Log($"ä¿®ç†ã‚«ãƒ¼ãƒ‰{targetName} ã‚’å¯¾è±¡ã«ã—ã¾ã—ãŸ");
                 break;
             default:
-                Debug.Log($"ƒAƒNƒVƒ‡ƒ“ƒJ[ƒh: {cardType}, ‘ÎÛ: {targetName}");
+                Debug.Log($"ã‚¢ã‚¯ã‚·ãƒ§ãƒ³ã‚«ãƒ¼ãƒ‰: {cardType}, å¯¾è±¡: {targetName}");
                 break;
         }
     }
-    //ƒvƒŒƒCƒ„[‚Ì‚Á‚Ä‚¢‚é“¹‹ï‚Ìó‘Ô‚ğŠÇ—‚µ‚ÄXV‚·‚é
+    //ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®æŒã£ã¦ã„ã‚‹é“å…·ã®çŠ¶æ…‹ã‚’ç®¡ç†ã—ã¦æ›´æ–°ã™ã‚‹
     private void SetPlayerToolBrokenState(ulong targetClientId, CardType cardType, bool isBroken)
     {
         SetSynchronizedPlayerToolBrokenState(targetClientId, cardType, isBroken);
@@ -1458,7 +1604,7 @@ public class BoardManager : NetworkBehaviour
             }
 
             bool updated = false;
-            //isBroken‚Ì’l‚É‘‚«Š·‚¦‚é
+            //isBrokenã®å€¤ã«æ›¸ãæ›ãˆã‚‹
             switch (cardType)
             {
                 case CardType.Lanternban:
@@ -1484,8 +1630,21 @@ public class BoardManager : NetworkBehaviour
             }
         }
 
-        SetPlayerNetworkToolBrokenState(targetClientId, cardType, isBroken);//ƒlƒbƒgƒ[ƒN‚Ì“¯Šú
+        SetPlayerNetworkToolBrokenState(targetClientId, cardType, isBroken);//ãƒãƒƒãƒˆãƒ¯ãƒ¼ã‚¯ã®åŒæœŸ
         RefreshPlayerList();
+    }
+
+    // NetworkList<PlayerToolState> ã‹ã‚‰å®‰å…¨ã«ãƒ‡ãƒ¼ã‚¿ã‚’å–ã‚Šå‡ºã™é–¢æ•°
+    private PlayerToolState GetPlayerToolState(ulong targetClientId)
+    {
+        for (int i = 0; i < playerToolStates.Count; i++)
+        {
+            if (playerToolStates[i].clientId == targetClientId)
+            {
+                return playerToolStates[i];
+            }
+        }
+        return default;
     }
 
     private void SetSynchronizedPlayerToolBrokenState(ulong targetClientId, CardType cardType, bool isBroken)
@@ -1512,6 +1671,9 @@ public class BoardManager : NetworkBehaviour
                     break;
                 case CardType.Railcarban:
                 case CardType.Railcarrepaire:
+                case CardType.PickaxeOrLanternrepaire:
+                case CardType.PickaxeOrRailcarrepaire:
+                case CardType.LanternOrRailcarrepaire:
                     state.isRailcarBroken = isBroken;
                     break;
                 default:
@@ -1525,10 +1687,10 @@ public class BoardManager : NetworkBehaviour
 
     private CellComponent GetCellAt(int x, int y)
     {
-        // ”Õ–Êã‚Ì‚·‚×‚Ä‚ÌCellComponent‚ğ’T‚µ‚ÄAÀ•W‚ªˆê’v‚·‚é‚à‚Ì‚ğ•Ô‚·
+        // ç›¤é¢ä¸Šã®ã™ã¹ã¦ã®CellComponentã‚’æ¢ã—ã¦ã€åº§æ¨™ãŒä¸€è‡´ã™ã‚‹ã‚‚ã®ã‚’è¿”ã™
         foreach (var cell in FindObjectsOfType<CellComponent>())
         {
-            if (cell.x == x && cell.y == y) // ‚à‚µ CellComponent ‚É x, y ‚Æ‚¢‚¤ƒvƒƒpƒeƒB‚ª‚ ‚ê‚Î
+            if (cell.x == x && cell.y == y) // ã‚‚ã— CellComponent ã« x, y ã¨ã„ã†ãƒ—ãƒ­ãƒ‘ãƒ†ã‚£ãŒã‚ã‚Œã°
             {
                 return cell;
             }
@@ -1612,12 +1774,12 @@ public class BoardManager : NetworkBehaviour
                cardType == CardType.ActionMap;
     }
 
-    //w’è‚³‚ê‚½ˆÊ’u‚ÉƒJ[ƒh‚ğ’u‚¯‚é‚©‚ğŠm”F‚·‚é
+    //æŒ‡å®šã•ã‚ŒãŸä½ç½®ã«ã‚«ãƒ¼ãƒ‰ã‚’ç½®ã‘ã‚‹ã‹ã‚’ç¢ºèªã™ã‚‹
     private bool CanPlaceCard(ulong clientId, Vector2Int position, CardType cardType, bool rotated)
     {
         bool hasNormalRoadConnection = false;
         bool hasDeadEndConnection = false;
-        // “¹ƒJ[ƒh‚ğ’u‚­‚É‚ÍA©•ª‚Ì“¹‹ï‚ª‰ó‚ê‚Ä‚¢‚È‚¢•K—v‚ª‚ ‚è‚Ü‚·B
+        // é“ã‚«ãƒ¼ãƒ‰ã‚’ç½®ãã«ã¯ã€è‡ªåˆ†ã®é“å…·ãŒå£Šã‚Œã¦ã„ãªã„å¿…è¦ãŒã‚ã‚Šã¾ã™ã€‚
         if (IsRoadCard(cardType))
         {
             TryGetPlayerToolBrokenState(
@@ -1628,17 +1790,17 @@ public class BoardManager : NetworkBehaviour
 
             if (isLanternBroken || isRailcarBroken || isPickaxeBroken)
             {
-                Debug.Log("¸”s: “¹‹ï‚ª‰ó‚ê‚Ä‚¢‚é‚½‚ßA“¹ƒJ[ƒh‚ğ’u‚¯‚Ü‚¹‚ñ");
+                Debug.Log("å¤±æ•—: é“å…·ãŒå£Šã‚Œã¦ã„ã‚‹ãŸã‚ã€é“ã‚«ãƒ¼ãƒ‰ã‚’ç½®ã‘ã¾ã›ã‚“");
                 return false;
             }
         }
 
-        // Œ»İ‚Ì”Õ–ÊƒŠƒXƒg‚Ì’†g‚ğ‚·‚×‚Ä•\¦
+        // ç¾åœ¨ã®ç›¤é¢ãƒªã‚¹ãƒˆã®ä¸­èº«ã‚’ã™ã¹ã¦è¡¨ç¤º
         foreach (var card in placedCards)
         {
             Vector2Int neighborPos = new Vector2Int(card.x, card.y);
 
-            // ã‰º¶‰E‚Ì‚İŠm”F
+            // ä¸Šä¸‹å·¦å³ã®ã¿ç¢ºèª
             if (Vector2Int.Distance(position, neighborPos) != 1)
                 continue;
 
@@ -1671,31 +1833,31 @@ public class BoardManager : NetworkBehaviour
         }
         if (placedCards.Count == 0)
         {
-            Debug.Log("[PlacementTest] ‰è”z’u‹–‰Â");
+            Debug.Log("[PlacementTest] åˆæ‰‹é…ç½®è¨±å¯");
             return true;
         }
 
-        if (HasCardAt(position)) //ƒJ[ƒh‚ª’u‚©‚ê‚Ä‚¢‚é‚©
+        if (HasCardAt(position)) //ã‚«ãƒ¼ãƒ‰ãŒç½®ã‹ã‚Œã¦ã„ã‚‹ã‹
         {
-            Debug.Log("¸”s: Šù‚ÉƒJ[ƒh‚ª‚ ‚è‚Ü‚·");
+            Debug.Log("å¤±æ•—: æ—¢ã«ã‚«ãƒ¼ãƒ‰ãŒã‚ã‚Šã¾ã™");
             return false;
         }
 
         if (!hasNormalRoadConnection && hasDeadEndConnection)
         {
-            Debug.Log("¸”s: DeadEnd‚É‚µ‚©Ú‘±‚µ‚Ä‚¢‚Ü‚¹‚ñ");
+            Debug.Log("å¤±æ•—: DeadEndã«ã—ã‹æ¥ç¶šã—ã¦ã„ã¾ã›ã‚“");
             return false;
         }
 
-        //ã‰º‚¢‚¸‚ê‚©‚ÉƒJ[ƒh‚ª’u‚©‚ê‚Ä‚¢‚é‚©‚ğŠm”F
+        //ä¸Šä¸‹ã„ãšã‚Œã‹ã«ã‚«ãƒ¼ãƒ‰ãŒç½®ã‹ã‚Œã¦ã„ã‚‹ã‹ã‚’ç¢ºèª
         bool hasNeighbor = HasCardAt(position + Vector2Int.up)
                         || HasCardAt(position + Vector2Int.down)
                         || HasCardAt(position + Vector2Int.left)
                         || HasCardAt(position + Vector2Int.right);
 
-        if (!hasNeighbor) { Debug.Log("¸”s: —×Ú‚·‚éƒJ[ƒh‚ª‚ ‚è‚Ü‚¹‚ñ"); return false; }
+        if (!hasNeighbor) { Debug.Log("å¤±æ•—: éš£æ¥ã™ã‚‹ã‚«ãƒ¼ãƒ‰ãŒã‚ã‚Šã¾ã›ã‚“"); return false; }
 
-        // ‚±‚±‚ÅÚ×‚É•ª‚¯‚é
+        // ã“ã“ã§è©³ç´°ã«åˆ†ã‘ã‚‹
         bool ruleOk = CardRules.CanPlaceCard(position, cardType, rotated, placedCards);
         bool connectOk = connectivityService.ConnectsToStart(
             position,
@@ -1703,10 +1865,10 @@ public class BoardManager : NetworkBehaviour
             rotated,
             CreatePlacedCardsSnapshot());
 
-        if (!ruleOk) { Debug.Log("¸”s: “¹˜H‚ÌÚ‘±ƒ‹[ƒ‹‚Éˆá”½‚µ‚Ä‚¢‚Ü‚·"); return false; }
+        if (!ruleOk) { Debug.Log("å¤±æ•—: é“è·¯ã®æ¥ç¶šãƒ«ãƒ¼ãƒ«ã«é•åã—ã¦ã„ã¾ã™"); return false; }
 
 
-        if (!connectOk) { Debug.Log("¸”s: ƒXƒ^[ƒgƒJ[ƒh‚É‚Â‚È‚ª‚Á‚Ä‚¢‚Ü‚¹‚ñ"); return false; }
+        if (!connectOk) { Debug.Log("å¤±æ•—: ã‚¹ã‚¿ãƒ¼ãƒˆã‚«ãƒ¼ãƒ‰ã«ã¤ãªãŒã£ã¦ã„ã¾ã›ã‚“"); return false; }
 
 
         return true;
@@ -1736,7 +1898,7 @@ public class BoardManager : NetworkBehaviour
         return false;
     }
 
-    //s“®Œ—“à‚ÌƒvƒŒƒCƒ„[‚©‚Ç‚¤‚©‚ğŠm”F‚·‚é
+    //è¡Œå‹•åœå†…ã®ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã‹ã©ã†ã‹ã‚’ç¢ºèªã™ã‚‹
     private bool CanAct(ulong clientId)
     {
         return IsServer && !gameEnded.Value && players.Count > 0 && players[currentPlayerIndex.Value].clientId == clientId;
@@ -1759,7 +1921,7 @@ public class BoardManager : NetworkBehaviour
         playerInfo = default;
         return false;
     }
-    //w’è‚³‚ê‚½ƒvƒŒƒCƒ„[‚Ì“¹‹ï‚Ìó‘Ô‚ğæ“¾‚·‚éˆ—
+    //æŒ‡å®šã•ã‚ŒãŸãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®é“å…·ã®çŠ¶æ…‹ã‚’å–å¾—ã™ã‚‹å‡¦ç†
     public bool TryGetPlayerToolBrokenState(ulong clientId, out bool isLanternBroken, out bool isPickaxeBroken, out bool isRailcarBroken)
     {
         isLanternBroken = false;
@@ -1780,7 +1942,7 @@ public class BoardManager : NetworkBehaviour
             return true;
         }
 
-        PlayerNetworkData playerData = FindPlayerNetworkData(clientId);//ƒT[ƒo[‘¤‚ÌƒvƒŒƒCƒ„[ƒf[ƒ^‚ğæ“¾
+        PlayerNetworkData playerData = FindPlayerNetworkData(clientId);//ã‚µãƒ¼ãƒãƒ¼å´ã®ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ãƒ‡ãƒ¼ã‚¿ã‚’å–å¾—
         if (playerData != null)
         {
             isLanternBroken = playerData.isLanternBroken.Value;
@@ -1862,7 +2024,7 @@ public class BoardManager : NetworkBehaviour
 
         return $"Player {clientId}";
     }
-    //w’è‚³‚ê‚½ƒvƒŒƒCƒ„[‚ªèD‚É“Á’è‚ÌƒJ[ƒh‚ğ‚Á‚Ä‚¢‚é‚©‚ğŠm”F‚·‚é
+    //æŒ‡å®šã•ã‚ŒãŸãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ãŒæ‰‹æœ­ã«ç‰¹å®šã®ã‚«ãƒ¼ãƒ‰ã‚’æŒã£ã¦ã„ã‚‹ã‹ã‚’ç¢ºèªã™ã‚‹
     private bool HasCardInHand(ulong clientId, CardType cardType)
     {
         for (int i = 0; i < dealtCards.Count; i++)
@@ -1876,10 +2038,10 @@ public class BoardManager : NetworkBehaviour
         return false;
     }
 
-    //ƒJ[ƒh‚ğèD‚©‚çíœ‚·‚éˆ—
+    //ã‚«ãƒ¼ãƒ‰ã‚’æ‰‹æœ­ã‹ã‚‰å‰Šé™¤ã™ã‚‹å‡¦ç†
     private bool RemoveCardFromHand(ulong clientId, CardType cardType)
     {
-        for (int i = 0; i < dealtCards.Count; i++)//èD‚ğ‡”Ô‚É’²‚×‚é
+        for (int i = 0; i < dealtCards.Count; i++)//æ‰‹æœ­ã‚’é †ç•ªã«èª¿ã¹ã‚‹
         {
             if (dealtCards[i].ownerClientId == clientId && dealtCards[i].cardType == cardType)
             {
@@ -1892,7 +2054,7 @@ public class BoardManager : NetworkBehaviour
         return false;
     }
 
-    //”Õ–Ê‚©‚çƒJ[ƒh‚ğíœ‚·‚éˆ—
+    //ç›¤é¢ã‹ã‚‰ã‚«ãƒ¼ãƒ‰ã‚’å‰Šé™¤ã™ã‚‹å‡¦ç†
     private void RemovePlacedCard(Vector2Int position)
     {
         if (TryGetRemovableRoadIndex(position, out int roadIndex))
@@ -1932,21 +2094,21 @@ public class BoardManager : NetworkBehaviour
         goalIndex = -1;
         return false;
     }
-    //ƒJ[ƒh‚ğˆø‚­ˆ—
+    //ã‚«ãƒ¼ãƒ‰ã‚’å¼•ãå‡¦ç†
     private void DrawCard(ulong clientId)
     {
-        //RD‚Ìó‘Ô‚ğŠm”F
+        //å±±æœ­ã®çŠ¶æ…‹ã‚’ç¢ºèª
         if (deck.Count == 0)
         {
             return;
         }
 
-        int randomIndex = UnityEngine.Random.Range(0, deck.Count);      //RD‚©‚çƒ‰ƒ“ƒ_ƒ€‚ÉƒJ[ƒh‚ğˆø‚­
-        CardType cardType = deck[randomIndex];              //ˆø‚¢‚½ƒJ[ƒh‚Ìí—Ş‚ğæ“¾
-        deck.RemoveAt(randomIndex);                         //RD‚©‚çˆø‚¢‚½ƒJ[ƒh‚ğíœ
-        dealtCards.Add(new DealtCard(clientId, cardType));  //ˆø‚¢‚½ƒJ[ƒh‚ğƒvƒŒƒCƒ„[‚ÌèD‚É’Ç‰Á
+        int randomIndex = UnityEngine.Random.Range(0, deck.Count);      //å±±æœ­ã‹ã‚‰ãƒ©ãƒ³ãƒ€ãƒ ã«ã‚«ãƒ¼ãƒ‰ã‚’å¼•ã
+        CardType cardType = deck[randomIndex];              //å¼•ã„ãŸã‚«ãƒ¼ãƒ‰ã®ç¨®é¡ã‚’å–å¾—
+        deck.RemoveAt(randomIndex);                         //å±±æœ­ã‹ã‚‰å¼•ã„ãŸã‚«ãƒ¼ãƒ‰ã‚’å‰Šé™¤
+        dealtCards.Add(new DealtCard(clientId, cardType));  //å¼•ã„ãŸã‚«ãƒ¼ãƒ‰ã‚’ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®æ‰‹æœ­ã«è¿½åŠ 
     }
-    // ƒXƒ^[ƒg‚©‚ç“¹‚ª‚Â‚È‚ª‚Á‚½ƒS[ƒ‹‚ğŒöŠJ‚µA‹à‰ò‚È‚çƒQ[ƒ€‚ğI—¹‚·‚éB
+    // ã‚¹ã‚¿ãƒ¼ãƒˆã‹ã‚‰é“ãŒã¤ãªãŒã£ãŸã‚´ãƒ¼ãƒ«ã‚’å…¬é–‹ã—ã€é‡‘å¡Šãªã‚‰ã‚²ãƒ¼ãƒ ã‚’çµ‚äº†ã™ã‚‹ã€‚
     private void RevealConnectedGoals(ulong discoveringClientId)
     {
         if (!IsServer || gameEnded.Value)
@@ -1989,17 +2151,17 @@ public class BoardManager : NetworkBehaviour
         }
     }
 
-    //ƒQ[ƒ€I—¹ˆ—
+    //ã‚²ãƒ¼ãƒ çµ‚äº†å‡¦ç†
     private void EndGame()
     {
 
         gameEnded.Value = true;
 
-        // ‘SƒNƒ‰ƒCƒAƒ“ƒg‚É‘Î‚µ‚ÄƒV[ƒ“‘JˆÚ‚ğ–½—ß
+        // å…¨ã‚¯ãƒ©ã‚¤ã‚¢ãƒ³ãƒˆã«å¯¾ã—ã¦ã‚·ãƒ¼ãƒ³é·ç§»ã‚’å‘½ä»¤
         NetworkManager.SceneManager.LoadScene("ResultScene", UnityEngine.SceneManagement.LoadSceneMode.Single);
     }
 
-    //Ÿ‚ÌƒvƒŒƒCƒ„[‚Éƒ^[ƒ“‚ği‚ß‚éˆ—
+    //æ¬¡ã®ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã«ã‚¿ãƒ¼ãƒ³ã‚’é€²ã‚ã‚‹å‡¦ç†
     private void AdvanceTurn()
     {
         if (!IsServer || players.Count == 0)
@@ -2034,7 +2196,7 @@ public class BoardManager : NetworkBehaviour
         RefreshPlacementHighlights();
     }
 
-    //‚Ü‚·‚É‚©[‚Ç‚ª‚ ‚é‚©‚Ç‚¤‚©‚ğŠm”F‚·‚é
+    //ã¾ã™ã«ã‹ãƒ¼ã©ãŒã‚ã‚‹ã‹ã©ã†ã‹ã‚’ç¢ºèªã™ã‚‹
     private bool IsCellEmpty(int x, int y)
     {
 
@@ -2047,19 +2209,19 @@ public class BoardManager : NetworkBehaviour
 
         if (actionTargetSelectionActive)
         {
-            turnText.text = "banƒJ[ƒh‚Ì‘ÎÛƒvƒŒƒCƒ„[‚ğ‘I‘ğ‚µ‚Ä‚­‚¾‚³‚¢";
+            turnText.text = "banã‚«ãƒ¼ãƒ‰ã®å¯¾è±¡ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã‚’é¸æŠã—ã¦ãã ã•ã„";
             return;
         }
 
         if (gameEnded.Value)
         {
-            turnText.text = $"{GetPlayerName(winningClientId.Value)} ‚ª‹à‰ò‚ğ”­Œ©I\nŸ—˜I";
+            turnText.text = $"{GetPlayerName(winningClientId.Value)} ãŒé‡‘å¡Šã‚’ç™ºè¦‹ï¼\nå‹åˆ©ï¼";
             return;
         }
 
         if (players.Count == 0)
         {
-            // ƒCƒ“ƒXƒyƒNƒ^[‚Åİ’è‚µ‚½ƒfƒtƒHƒ‹ƒg‚Ì‘Ò‹@ó‘Ô‚ğ•\¦
+            // ã‚¤ãƒ³ã‚¹ãƒšã‚¯ã‚¿ãƒ¼ã§è¨­å®šã—ãŸãƒ‡ãƒ•ã‚©ãƒ«ãƒˆã®å¾…æ©ŸçŠ¶æ…‹ã‚’è¡¨ç¤º
             turnText.text = string.Format(roundFormat, 1) + "\n" + waitingText;
             return;
         }
@@ -2070,7 +2232,7 @@ public class BoardManager : NetworkBehaviour
         bool isLocalTurn = NetworkManager.Singleton != null &&
                            currentPlayer.clientId == NetworkManager.Singleton.LocalClientId;
 
-        // İ’è‚µ‚½ƒƒbƒZ[ƒW•Ï”‚ğ—˜—p
+        // è¨­å®šã—ãŸãƒ¡ãƒƒã‚»ãƒ¼ã‚¸å¤‰æ•°ã‚’åˆ©ç”¨
         string statusText = isLocalTurn ? myTurnText : waitingText;
         string roundText = string.Format(roundFormat, roundNumber.Value);
         string nameText = string.Format(turnFormat, currentPlayer.playerName.ToString());
@@ -2083,7 +2245,7 @@ public class BoardManager : NetworkBehaviour
         turnText.text = $"{roundText}\n{nameText}\n{statusText}";
     }
 
-    //ƒvƒŒƒCƒ„[‚Ìƒ^[ƒ“•\¦‚ğXV‚·‚é‚½‚ß
+    //ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®ã‚¿ãƒ¼ãƒ³è¡¨ç¤ºã‚’æ›´æ–°ã™ã‚‹ãŸã‚
     private void EnsureTurnText()
     {
         if (turnText != null)
@@ -2093,25 +2255,25 @@ public class BoardManager : NetworkBehaviour
 
         if (players.Count == 0)
         {
-            turnText.text = "ƒ‰ƒEƒ“ƒh 1\n‘Ò‹@’†";
+            turnText.text = "ãƒ©ã‚¦ãƒ³ãƒ‰ 1\nå¾…æ©Ÿä¸­";
             return;
         }
 
-        int safeIndex = Mathf.Clamp(currentPlayerIndex.Value, 0, players.Count - 1);  //player‚Ìl”‚Ì§ŒÀ(”ÍˆÍ:Å¬0,Å‘åplayer-1)
-        string currentName = players[safeIndex].playerName.ToString();                //Œ»İ‚Ìƒ^[ƒ“‚Ìplayer‚Ì–¼‘O
-        string localTurnLine = NetworkManager.Singleton != null &&                    //ƒlƒbƒgƒ[ƒNƒ}ƒl[ƒWƒƒ[‚ª‘¶İ‚·‚éê‡
+        int safeIndex = Mathf.Clamp(currentPlayerIndex.Value, 0, players.Count - 1);  //playerã®äººæ•°ã®åˆ¶é™(ç¯„å›²:æœ€å°0,æœ€å¤§player-1)
+        string currentName = players[safeIndex].playerName.ToString();                //ç¾åœ¨ã®ã‚¿ãƒ¼ãƒ³ã®playerã®åå‰
+        string localTurnLine = NetworkManager.Singleton != null &&                    //ãƒãƒƒãƒˆãƒ¯ãƒ¼ã‚¯ãƒãƒãƒ¼ã‚¸ãƒ£ãƒ¼ãŒå­˜åœ¨ã™ã‚‹å ´åˆ
                            players[safeIndex].clientId == NetworkManager.Singleton.LocalClientId
-        ? "‚ ‚È‚½‚Ì”Ô‚Å‚·"
-        : "‘Ò‹@’†";
+        ? "ã‚ãªãŸã®ç•ªã§ã™"
+        : "å¾…æ©Ÿä¸­";
     }
 
-    //Œ»İ‚Ìƒ^[ƒ“‚ÌƒvƒŒƒCƒ„[‚©‚Ç‚¤‚©‚ğ”»’è‚·‚é
+    //ç¾åœ¨ã®ã‚¿ãƒ¼ãƒ³ã®ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã‹ã©ã†ã‹ã‚’åˆ¤å®šã™ã‚‹
     private bool IsCurrentTurnIndex(int playerIndex)
     {
         return players.Count > 0 && playerIndex == Mathf.Clamp(currentPlayerIndex.Value, 0, players.Count - 1);
     }
 
-    //ƒ[ƒJƒ‹ƒvƒŒƒCƒ„[‚Ìƒ^[ƒ“‚©‚Ç‚¤‚©‚ğ”»’è‚·‚é
+    //ãƒ­ãƒ¼ã‚«ãƒ«ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®ã‚¿ãƒ¼ãƒ³ã‹ã©ã†ã‹ã‚’åˆ¤å®šã™ã‚‹
     public bool IsLocalPlayerTurn()
     {
         if (gameEnded.Value || NetworkManager.Singleton == null || players.Count == 0)
@@ -2123,7 +2285,7 @@ public class BoardManager : NetworkBehaviour
         return players[safeIndex].clientId == NetworkManager.Singleton.LocalClientId;
     }
 
-    //ƒJ[ƒh‚Ì‘€ì‰Â”\ó‘Ô‚ğİ’è‚·‚é
+    //ã‚«ãƒ¼ãƒ‰ã®æ“ä½œå¯èƒ½çŠ¶æ…‹ã‚’è¨­å®šã™ã‚‹
     private void SetCardInteractivity(CardView card, bool isInteractable)
     {
         CanvasGroup canvasGroup = card.GetComponent<CanvasGroup>();
@@ -2133,11 +2295,11 @@ public class BoardManager : NetworkBehaviour
         }
 
 
-        canvasGroup.interactable = isInteractable;   //“ü—ÍƒVƒXƒeƒ€‚Ì–³Œø‰»
-        canvasGroup.blocksRaycasts = isInteractable; //ƒ}ƒEƒX‚Ì”»’è‚Ì–³Œø‰»
+        canvasGroup.interactable = isInteractable;   //å…¥åŠ›ã‚·ã‚¹ãƒ†ãƒ ã®ç„¡åŠ¹åŒ–
+        canvasGroup.blocksRaycasts = isInteractable; //ãƒã‚¦ã‚¹ã®åˆ¤å®šã®ç„¡åŠ¹åŒ–
     }
 
-    //ƒAƒNƒVƒ‡ƒ“ƒJ[ƒh‚©‚Ç‚¤‚©‚ğ”»’è‚·‚é
+    //ã‚¢ã‚¯ã‚·ãƒ§ãƒ³ã‚«ãƒ¼ãƒ‰ã‹ã©ã†ã‹ã‚’åˆ¤å®šã™ã‚‹
     public static bool IsActionCard(CardType cardType)
     {
         switch (cardType)
@@ -2154,6 +2316,9 @@ public class BoardManager : NetworkBehaviour
             case CardType.Railcarban:
             case CardType.Treasuremap:
             case CardType.Fallingrocks:
+            case CardType.PickaxeOrLanternrepaire:
+            case CardType.PickaxeOrRailcarrepaire:
+            case CardType.LanternOrRailcarrepaire:
                 return true;
             default:
                 return false;
@@ -2162,26 +2327,26 @@ public class BoardManager : NetworkBehaviour
 
     private bool IsTerrainCard(CardType cardType)
     {
-        // Start‚à’nŒ`ƒJ[ƒh‚ÉŠÜ‚ß‚é
+        // Startã‚‚åœ°å½¢ã‚«ãƒ¼ãƒ‰ã«å«ã‚ã‚‹
         if (cardType == CardType.Start) return true;
 
-        // Action ‚Ån‚Ü‚é–¼‘OˆÈŠO‚ğ‚·‚×‚Ä‹–‰Â‚·‚é
+        // Action ã§å§‹ã¾ã‚‹åå‰ä»¥å¤–ã‚’ã™ã¹ã¦è¨±å¯ã™ã‚‹
         string name = cardType.ToString();
         bool isAction = name.StartsWith("Action");
 
-        // ƒfƒoƒbƒOƒƒO‚ğ’Ç‰Á‚µ‚Ä”»’è‚ğ‰Â‹‰»‚·‚é
+        // ãƒ‡ãƒãƒƒã‚°ãƒ­ã‚°ã‚’è¿½åŠ ã—ã¦åˆ¤å®šã‚’å¯è¦–åŒ–ã™ã‚‹
         Debug.Log($"[Check] Card: {cardType}, IsAction: {isAction}");
 
         return !isAction;
     }
 
 
-    //ƒJ[ƒh‚ª”Õ–Ê‚É’u‚©‚ê‚½‚çƒrƒ…[‚ğXV‚·‚é
+    //ã‚«ãƒ¼ãƒ‰ãŒç›¤é¢ã«ç½®ã‹ã‚ŒãŸã‚‰ãƒ“ãƒ¥ãƒ¼ã‚’æ›´æ–°ã™ã‚‹
     private void OnPlacedCardsChanged(NetworkListEvent<CardState> changeEvent)
     {
         if (changeEvent.Type == NetworkListEvent<CardState>.EventType.Add)
         {
-            SpawnCardView(changeEvent.Value);//V‚µ‚¢ƒJ[ƒh‚Ìƒrƒ…[‚ğ¶¬
+            SpawnCardView(changeEvent.Value);//æ–°ã—ã„ã‚«ãƒ¼ãƒ‰ã®ãƒ“ãƒ¥ãƒ¼ã‚’ç”Ÿæˆ
             RefreshPlacementHighlights();
             return;
         }
@@ -2217,7 +2382,7 @@ public class BoardManager : NetworkBehaviour
         RefreshPlacementHighlights();
     }
 
-    //ƒJ[ƒh‚Ì•\¦‚ğ¶¬‚·‚é
+    //ã‚«ãƒ¼ãƒ‰ã®è¡¨ç¤ºã‚’ç”Ÿæˆã™ã‚‹
     private void SpawnCardView(CardState state)
     {
         if (cardPrefab == null)
@@ -2243,7 +2408,7 @@ public class BoardManager : NetworkBehaviour
         bool parentIsCell = targetCell != null;
 
         CardView cardView = Instantiate(cardPrefab, parent);
-        // ”z’u‚ÌŒü‚«‚ÍƒvƒŒƒCƒ„[‚ªRƒL[‚Å‘I‚ñ‚¾ó‘Ô‚¾‚¯‚ğ”½‰f‚·‚éB
+        // é…ç½®æ™‚ã®å‘ãã¯ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ãŒRã‚­ãƒ¼ã§é¸ã‚“ã çŠ¶æ…‹ã ã‘ã‚’åæ˜ ã™ã‚‹ã€‚
         CardRotationController.ApplyRotation(cardView.transform, state.rotated);
         RectTransform rectTransform = cardView.GetComponent<RectTransform>();
         if (rectTransform != null)
@@ -2300,7 +2465,7 @@ public class BoardManager : NetworkBehaviour
         cardRect.sizeDelta = targetSize;
         cardRect.localScale = Vector3.one;
     }
-    //ƒlƒbƒgƒ[ƒNI—¹‚ÌƒCƒxƒ“ƒg‰ğœ
+    //ãƒãƒƒãƒˆãƒ¯ãƒ¼ã‚¯çµ‚äº†æ™‚ã®ã‚¤ãƒ™ãƒ³ãƒˆè§£é™¤
     public override void OnNetworkDespawn()
     {
         placedCards.OnListChanged -= OnPlacedCardsChanged;
