@@ -1630,6 +1630,9 @@ MonoBehaviour:
   turnTextRect: {fileID: 714190398}
   myTurnPosition: {fileID: 1884885111}
   waitingPosition: {fileID: 641802372}
+  choicePanel: {fileID: 0}
+  buttonContainer: {fileID: 0}
+  buttonPrefab: {fileID: 0}
   deckComposition: []
   selectingFallingRocks: 0
   handRootPrefab: {fileID: 869670466}
@@ -3142,6 +3145,18 @@ PrefabInstance:
       propertyPath: goalEmptyMiddleSprite
       value: 
       objectReference: {fileID: 21300000, guid: 8407d8f9e858c9a46a80cbece432639b, type: 3}
+    - target: {fileID: 3218219355869854588, guid: b5532de47e2f30a44bc0dc145f2fe4b0, type: 3}
+      propertyPath: LanternOrRailcarrepaire
+      value: 
+      objectReference: {fileID: 21300000, guid: b0b93926afaf2474d98ee44213217248, type: 3}
+    - target: {fileID: 3218219355869854588, guid: b5532de47e2f30a44bc0dc145f2fe4b0, type: 3}
+      propertyPath: PickaxeOrLanternrepaire
+      value: 
+      objectReference: {fileID: 21300000, guid: b974efa3358b22b419f93478c346eafb, type: 3}
+    - target: {fileID: 3218219355869854588, guid: b5532de47e2f30a44bc0dc145f2fe4b0, type: 3}
+      propertyPath: PickaxeOrRailcarrepaire
+      value: 
+      objectReference: {fileID: 21300000, guid: 05f90d62f238de44b9c903c5c9b073dc, type: 3}
     - target: {fileID: 5982137987157967292, guid: b5532de47e2f30a44bc0dc145f2fe4b0, type: 3}
       propertyPath: m_Sprite
       value: 
